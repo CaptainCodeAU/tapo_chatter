@@ -1,0 +1,26 @@
+{
+    "name": "Ruff Linter",
+    "description": "Lints Python code using ruff and reports issues",
+    "enabled": true,
+    "promptModifiers": [],
+    "runOn": [
+        "afterSave"
+    ],
+    "canRunWithoutFile": false,
+    "files": [
+        {
+            "path": "**/*.py"
+        }
+    ],
+    "excludedFiles": [],
+    "action": {
+        "type": "shell",
+        "command": "ruff check ${filePath}",
+        "workingDir": ".",
+        "continueOnError": true
+    },
+    "suggestUserAction": {
+        "description": "Fix linting issues in your file",
+        "actionTemplate": "Linting issues found in ${fileName}:\n\n{{outputLines}}\n\nYou can fix many of these issues with 'ruff check --fix ${fileName}'"
+    }
+}

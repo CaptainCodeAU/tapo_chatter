@@ -1,0 +1,20 @@
+{
+    "name": "Check Environment Variables",
+    "description": "Reminds to set required environment variables when running the main module",
+    "enabled": true,
+    "promptModifiers": [],
+    "runOn": [
+        "beforeRun"
+    ],
+    "canRunWithoutFile": false,
+    "files": [
+        {
+            "path": "src/tapo_chatter/main.py"
+        }
+    ],
+    "excludedFiles": [],
+    "action": {
+        "type": "prompt",
+        "prompt": "Make sure the following environment variables are set before running:\n\n- TAPO_USERNAME\n- TAPO_PASSWORD\n- TAPO_IP_ADDRESS\n\nYou can set them in a .env file or export them in your terminal session."
+    }
+}
