@@ -1,5 +1,20 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Formatting Python Code with Ruff
+
+This project uses `ruff` for formatting Python code. To format a specific file, you can use the following command:
+
+```bash
+ruff format <file_path.py>
+```
+
+To format all files in the project:
+
+```bash
+ruff format .
+```
+
+The ruff formatting configuration can be found in [pyproject.toml](mdc:pyproject.toml).

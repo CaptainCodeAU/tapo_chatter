@@ -1,5 +1,28 @@
 ---
-description:
-globs:
+description: Linting Python Code with Ruff
+globs: 
 alwaysApply: false
 ---
+# Linting Python Code with Ruff
+
+This project uses `ruff` for linting Python code. To lint a specific file, you can use the following command:
+
+```bash
+ruff check <file_path.py>
+```
+
+To check all files in the project:
+
+```bash
+ruff check .
+```
+
+To attempt to automatically fix linting issues:
+
+```bash
+ruff check --fix <file_path.py>
+# or for the whole project
+ruff check . --fix
+```
+
+Refer to the [pyproject.toml](mdc:pyproject.toml) for the specific ruff configuration used in this project.

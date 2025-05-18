@@ -1,5 +1,5 @@
 ---
-description: 
+description: How the application loads and validates configuration
 globs: 
 alwaysApply: false
 ---

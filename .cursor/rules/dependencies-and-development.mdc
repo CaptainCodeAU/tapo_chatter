@@ -1,5 +1,5 @@
 ---
-description: 
+description: Project dependencies and development setup instructions
 globs: 
 alwaysApply: false
 ---
@@ -16,53 +16,62 @@ file-pattern: pyproject.toml
 
 ## Project Dependencies
 
-The [pyproject.toml](mdc:pyproject.toml) file defines all dependencies for this project:
+The [pyproject.toml](mdc:pyproject.toml) file is the single source of truth for all project dependencies.
 
-### Core Dependencies
+### Core Dependencies (defined in `[project.dependencies]`):
 - **tapo>=0.2.0**: Core library for interacting with Tapo devices
 - **python-dotenv>=1.0.0**: For loading environment variables from .env files
 - **rich>=13.7.0**: For beautiful console output with tables and styling
 
-### Development Dependencies
+### Development Dependencies (defined in `[project.optional-dependencies.dev]`):
 - **ruff**: For linting and code formatting
 - **pytest**: For test execution
 - **pytest-cov**: For code coverage reporting
 
 ## Development Setup
 
-1. Setup Python environment with Python 3.13:
-```bash
-# Install uv if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
+1.  **Ensure Python 3.13 is available.**
+    Refer to `.python-version` if using a version manager like `pyenv`.
 
-# Create and activate virtual environment
-python_setup 3.13
-```
+2.  **Set up a virtual environment and install dependencies:**
+    It is highly recommended to use a virtual environment to manage project dependencies and avoid conflicts with system-wide packages.
 
-2. Configure environment variables:
-   - Create a `.env` file based on [.env.example](mdc:.env.example)
-   - Or set them in your shell
+    ```bash
+    # Create a virtual environment (e.g., using Python's built-in venv)
+    python3.13 -m venv .venv
 
-3. Install dependencies:
-```bash
-pip install -e .  # Install the package in development mode
-pip install -e ".[dev]"  # Install development dependencies
-```
+    # Activate the virtual environment
+    source .venv/bin/activate 
+    # For Windows: .venv\Scripts\activate
+
+    # Install dependencies using uv (or pip)
+    # Ensure uv is installed: https://github.com/astral-sh/uv
+    uv pip install -e ".[dev]"
+    # Alternatively, with pip:
+    # pip install -e ".[dev]"
+    ```
+    This command installs the package in editable mode (`-e .`) along with all development dependencies (`[dev]`).
+
+3.  **Configure Environment Variables:**
+    -   Create a `.env` file in the project root by copying from [.env.example](mdc:.env.example) and filling in your details.
+        ```bash
+        cp .env.example .env
+        ```
+    -   Alternatively, export the required variables (`TAPO_USERNAME`, `TAPO_PASSWORD`, `TAPO_IP_ADDRESS`) in your shell environment.
+    -   If using `direnv`, it will automatically load variables from `.envrc` (which sources `.env`).
 
 ## Code Style
 
-This project uses ruff for linting and formatting:
+This project uses `ruff` for linting and formatting to maintain consistent code style. The configuration is in [pyproject.toml](mdc:pyproject.toml).
 
-```bash
-# Check code
-ruff check .
+-   **To check for linting issues:**
+    ```bash
+    ruff check .
+    ```
+-   **To automatically fix linting issues and format code:**
+    ```bash
+    ruff format .
+    ruff check . --fix
+    ```
 
-# Format code
-ruff format .
-```
-
-The configuration for ruff is in the [pyproject.toml](mdc:pyproject.toml) file, specifying:
-- Python version targeting
-- Line length and indent width
-- Enabled linter rules
-- Import sorting configuration
+Always ensure your code is linted and formatted before committing changes.

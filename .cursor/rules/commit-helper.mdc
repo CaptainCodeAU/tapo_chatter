@@ -1,0 +1,56 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+rule-type: command-hint
+display-name: Commit Changes Helper
+priority: 550
+enable-rule: true
+description: Provides a quick command to stage and commit changes.
+command-name: Stage & Commit
+command-template: "git add . && git commit -m \"feat: Your commit message here\""
+---
+
+# Stage and Commit Changes
+
+Remember to commit your changes frequently after successful steps or logical units of work.
+
+## Quick Commit
+
+Use the **"Stage & Commit"** command hint available through Cursor when this rule is active.
+You'll need to **replace `\"feat: Your commit message here\"`** with a meaningful commit message.
+
+## Manual Commit Workflow
+
+1.  **Check status:**
+    ```bash
+    git status
+    ```
+2.  **Stage changes:**
+    ```bash
+    git add <file1> <file2>  # Stage specific files
+    # or
+    git add .                # Stage all changes in the current directory (as in the command hint)
+    ```
+3.  **Commit changes:**
+    ```bash
+    git commit -m "type: Brief description of changes"
+    ```
+
+## Commit Message Conventions
+
+Consider using conventional commit messages for clarity:
+
+-   `feat:` (new feature)
+-   `fix:` (bug fix)
+-   `docs:` (documentation changes)
+-   `style:` (formatting, missing semi colons, etc.; no code change)
+-   `refactor:` (refactoring production code)
+-   `test:` (adding or refactoring tests; no production code change)
+-   `chore:` (updating build tasks, package manager configs, etc.)
+
+**Example:**
+`git commit -m "feat: Implement user login functionality"`
+`git commit -m "fix: Resolve issue with incorrect calculation in reporting module"`
