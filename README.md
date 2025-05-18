@@ -48,6 +48,7 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
     -   Connection Status (Online/Offline) or Power State (On/Off) depending on device type
     -   Signal Level (Color-coded)
     -   MAC Address
+-   🔄 **Hub Child Device Detection:** Automatically detects Tapo Hubs and shows all connected child devices with detailed status information
 -   🔁 **Thread Management:** Uses semaphores to limit concurrent connections, preventing network overload.
 -   📊 **JSON Output Option:** Export discovery results in JSON format for further processing.
 -   🔍 **Improved Error Handling:** Verbose mode now provides a structured summary of connection errors by type instead of raw error messages.
@@ -244,6 +245,9 @@ The package also includes a tool to discover Tapo devices on your local network 
     # Enable cleaner error summary report
     tapo-discover --verbose
 
+    # Skip fetching child devices from discovered hubs
+    tapo-discover --no-children
+
     # Combine multiple options for optimized scanning
     tapo-discover --subnet 192.168.107 --range 220-230 --timeout 0.3 --limit 30 --num-devices 3 --verbose
     ```
@@ -252,6 +256,35 @@ The package also includes a tool to discover Tapo devices on your local network 
     ```bash
     tapo-discover --help
     ```
+-   **Example discovery output with hub child devices:**
+
+    ```
+    Found Tapo Hubs - Showing Connected Child Devices
+
+    ===== Child Devices Connected to 🧠 Hub (H100) at 192.168.107.222 =====
+
+    Fetching child devices from hub at 192.168.107.222...
+    Successfully connected to 192.168.107.222
+    Successfully initialized H100 hub
+    Successfully retrieved 2 child devices
+    Found 2 child devices connected to hub 🧠 Hub
+
+                                       Additional Device Information
+    ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Device Name      ┃ HW Ver ┃ MAC          ┃ Region           ┃ Signal Lvl ┃ Battery ┃ Jamming RSSI ┃ Report Int (s) ┃ Last Onboarded      ┃
+    ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+    │ Motion Sensor    │ 1.0    │ 74FECEB80F2B │ Australia/Sydney │ 3          │ OK      │ -112         │ 60             │ 2024-12-25 04:51:07 │
+    │ Contact Sensor 1 │ 1.0    │ 3C64CF0E9B19 │ Australia/Sydney │ 3          │ OK      │ -111         │ 16             │ 2024-12-08 22:14:55 │
+    └──────────────────┴────────┴──────────────┴──────────────────┴────────────┴─────────┴──────────────┴────────────────┴─────────────────────┘
+
+                                             Tapo H100 Child Devices
+    ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━┓
+    ┃ Device Name      ┃ Device ID                                ┃ Type             ┃ Status ┃ RSSI ┃ Details       ┃
+    ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━━┩
+    │ Motion Sensor    │ 802E5542189D74B402DEE926DFE92299228127D3 │ SMART.TAPOSENSOR │ Online │ -45  │ Motion: Clear │
+    │ Contact Sensor 1 │ 802E0F693556D75BA0D9A2D831FB87812358678F │ SMART.TAPOSENSOR │ Online │ -56  │ Contact: Open │
+    └──────────────────┴──────────────────────────────────────────┴──────────────────┴────────┴──────┴───────────────┘
+    ```
 
 The discovery tool:
 
@@ -259,8 +292,13 @@ The discovery tool:
 2. Scans for Tapo devices on your local network
 3. Displays detailed information about discovered devices
 4. Shows connection status for hubs/sensors and power state for plugs/bulbs
-5. Provides scan statistics showing total IPs scanned and connection errors
-6. With verbose mode, displays categorized error summary for network troubleshooting
+5. Automatically detects Tapo H100 Hubs and:
+    - Connects to each discovered hub using your configured credentials
+    - Fetches all child devices connected to the hub
+    - Displays two detailed tables for child devices (same format as the main application)
+    - Shows real-time status of each child device (motion detection, contact state, etc.)
+6. Provides scan statistics showing total IPs scanned and connection errors
+7. With verbose mode, displays categorized error summary for network troubleshooting
 
 ## Troubleshooting
 
@@ -313,6 +351,22 @@ Connection Statistics:
 ```
 
 This summary helps you understand network connectivity issues without overwhelming you with technical error messages.
+
+### Passthrough Protocol Test Errors
+
+When discovering hubs and retrieving child devices, you may see messages like:
+
+```
+Passthrough protocol test error: Http(reqwest::Error { kind: Request, url: "http://192.168.107.104/app", source: TimedOut })
+```
+
+These messages are normal and can be safely ignored. They occur when:
+
+1. The Tapo library tests different communication protocols to connect to devices
+2. It tries various IP addresses and communication methods until it finds one that works
+3. Some connection attempts naturally fail during this negotiation process
+
+As long as you see success messages after these errors (like "Successfully connected to..." or "Successfully initialized H100 hub"), the application is working as expected.
 
 ### Cursor AI Codebase Understanding (Cursor Rules)
 

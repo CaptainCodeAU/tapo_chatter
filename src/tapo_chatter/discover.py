@@ -2,7 +2,7 @@
 import asyncio
 import argparse
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 from rich.console import Console
 from rich.table import Table
@@ -10,6 +10,7 @@ from tapo import ApiClient
 
 from .config import TapoConfig
 from .device_discovery import discover_devices
+from .main import get_child_devices  # Import the function to get child devices from a hub
 
 console = Console()
 
@@ -84,13 +85,59 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
     console.print(table)
 
 
+async def print_hub_child_devices(hub_devices: List[Dict[str, Any]], client: ApiClient, show_details: bool = True) -> None:
+    """
+    Print child devices for each hub discovered.
+    
+    Args:
+        hub_devices: List of discovered hub devices
+        client: The Tapo ApiClient instance
+        show_details: Whether to show detail tables for each child device
+    """
+    from .main import print_device_table as print_child_device_table
+    from .main import print_additional_device_info_table
+    
+    for hub in hub_devices:
+        ip_address = hub.get('ip_address')
+        name = hub.get('device_info', {}).get('nickname', 'Unknown Hub')
+        model = hub.get('device_info', {}).get('model', 'Unknown')
+        
+        console.print(f"\n[bold blue]===== Child Devices Connected to {name} ({model}) at {ip_address} =====\n[/bold blue]")
+        
+        # Get child devices from the hub
+        try:
+            if ip_address is None:
+                console.print("[yellow]Cannot fetch child devices: No IP address available[/yellow]")
+                continue
+                
+            console.print(f"[yellow]Fetching child devices from hub at {ip_address}...[/yellow]")
+            child_devices = await get_child_devices(client, ip_address)
+            
+            if not child_devices:
+                console.print("[yellow]No child devices found connected to this hub.[/yellow]")
+                continue
+                
+            console.print(f"[green]Found {len(child_devices)} child devices connected to hub {name}[/green]")
+            
+            # Print detailed information tables
+            if show_details:
+                print_additional_device_info_table(child_devices)
+            
+            # Print the main child device table
+            print_child_device_table(child_devices)
+            
+        except Exception as e:
+            console.print(f"[red]Error fetching child devices from hub at {ip_address}: {str(e)}[/red]")
+
+
 async def discover_main(subnet: Optional[str] = None, 
                        ip_range: tuple = (1, 254), 
                        limit: int = 20,  # Increased default from 10 to 20
                        timeout: float = 0.5,  # Decreased default from 1.0 to 0.5
                        stop_after: Optional[int] = None,  # New parameter
                        json_output: bool = False,
-                       verbose: bool = False) -> None:
+                       verbose: bool = False,
+                       show_children: bool = True) -> None:
     """
     Main discovery function.
     
@@ -102,6 +149,7 @@ async def discover_main(subnet: Optional[str] = None,
         stop_after: Stop scanning after finding this many devices
         json_output: Whether to output JSON instead of a table
         verbose: Whether to show verbose error output
+        show_children: Whether to show child devices for discovered hubs
     """
     try:
         # Get configuration
@@ -164,6 +212,20 @@ async def discover_main(subnet: Optional[str] = None,
             # Output as a table
             print_device_table(devices)
             
+            # Find all hubs in the discovered devices
+            if show_children:
+                hub_devices = []
+                for device in devices:
+                    device_type = device.get('device_info', {}).get('type', 
+                                   device.get('device_info', {}).get('device_type', '')).upper()
+                    if 'HUB' in device_type:
+                        hub_devices.append(device)
+                
+                # Print child devices for each hub
+                if hub_devices:
+                    console.print("\n[bold blue]Found Tapo Hubs - Showing Connected Child Devices[/bold blue]")
+                    await print_hub_child_devices(hub_devices, client)
+            
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Discovery stopped by user[/bold yellow]")
     except Exception as e:
@@ -191,6 +253,8 @@ def discover_cli():
                       help="Output results in JSON format")
     parser.add_argument("-v", "--verbose", action="store_true",
                       help="Show verbose error output")
+    parser.add_argument("--no-children", action="store_true",
+                      help="Skip fetching and displaying child devices from hubs")
     
     args = parser.parse_args()
     
@@ -210,7 +274,8 @@ def discover_cli():
             timeout=args.timeout,
             stop_after=args.num_devices,
             json_output=args.json,
-            verbose=args.verbose
+            verbose=args.verbose,
+            show_children=not args.no_children
         ))
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Discovery stopped by user[/bold yellow]")
