@@ -27,7 +27,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
     table.add_column("Name", style="green")
     table.add_column("Model", style="blue")
     table.add_column("Type", style="magenta")
-    table.add_column("Status", style="yellow")
+    table.add_column("Connection/Power", style="yellow")
     table.add_column("Signal", style="red")
     table.add_column("MAC", style="dim")
     
@@ -47,8 +47,29 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
         else:
             signal_display = "N/A"
         
-        # Status display
-        status = "On" if device_info.get('device_on', False) else "Off"
+        # Status display - prefer 'status' property over 'device_on'
+        # For hubs and sensors, status indicates connectivity
+        # For plugs and bulbs, device_on indicates power state
+        if 'status' in device_info:
+            raw_status = device_info.get('status')
+            if isinstance(raw_status, (int, float)):
+                status = "Online" if raw_status == 1 else "Offline"
+            elif isinstance(raw_status, str):
+                status = "Online" if raw_status.lower() == "online" else "Offline"
+            elif raw_status is True:
+                status = "Online"
+            elif raw_status is False:
+                status = "Offline"
+            else:
+                # Default fallback to device_on
+                status = "On" if device_info.get('device_on', False) else "Off"
+        else:
+            # For smart plugs and lights, use device_on
+            device_type = device_info.get('type', device_info.get('device_type', '')).upper()
+            if 'HUB' in device_type or 'SENSOR' in device_type:
+                status = "Online"  # Assume online since we can communicate with it
+            else:
+                status = "On" if device_info.get('device_on', False) else "Off"
         
         table.add_row(
             device.get('ip_address', 'Unknown'),
