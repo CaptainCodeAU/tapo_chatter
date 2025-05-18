@@ -110,7 +110,7 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
 
                 if hasattr(device_obj, 'to_dict') and callable(getattr(device_obj, 'to_dict')):
                     try:
-                        device_data_from_to_dict = device_obj.to_dict()
+                        device_data_from_to_dict = device_obj.to_dict() # type: ignore[attr-defined]
                     except Exception:  # pylint: disable=broad-except
                         # If to_dict fails, params will remain empty for this device
                         pass
@@ -277,7 +277,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
         rssi_display = str(rssi_val)
         if isinstance(rssi_val, (int, float)):
             if rssi_val == 0: # Assuming 0 is a very strong signal
-                 rssi_display = f"[green]{rssi_val}[/green]"
+                rssi_display = f"[green]{rssi_val}[/green]"
             elif rssi_val > -65:
                 rssi_display = f"[green]{rssi_val}[/green]"
             elif rssi_val > -75:
