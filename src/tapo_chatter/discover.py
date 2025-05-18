@@ -67,7 +67,8 @@ async def discover_main(subnet: Optional[str] = None,
                        ip_range: tuple = (1, 254), 
                        limit: int = 10, 
                        timeout: float = 1.0,
-                       json_output: bool = False) -> None:
+                       json_output: bool = False,
+                       verbose: bool = False) -> None:
     """
     Main discovery function.
     
@@ -77,6 +78,7 @@ async def discover_main(subnet: Optional[str] = None,
         limit: Maximum number of concurrent probes
         timeout: Timeout for each probe in seconds
         json_output: Whether to output JSON instead of a table
+        verbose: Whether to show verbose error output
     """
     try:
         # Get configuration
@@ -108,7 +110,11 @@ async def discover_main(subnet: Optional[str] = None,
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Discovery stopped by user[/bold yellow]")
     except Exception as e:
-        console.print(f"[bold red]Error during discovery: {str(e)}[/bold red]")
+        error_msg = str(e)
+        if verbose:
+            import traceback
+            error_msg += f"\n{traceback.format_exc()}"
+        console.print(f"[bold red]Error during discovery: {error_msg}[/bold red]")
 
 
 def discover_cli():
@@ -124,6 +130,8 @@ def discover_cli():
                       help="Timeout for each probe in seconds (default: 1.0)")
     parser.add_argument("-j", "--json", action="store_true",
                       help="Output results in JSON format")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                      help="Show verbose error output")
     
     args = parser.parse_args()
     
@@ -141,7 +149,8 @@ def discover_cli():
             ip_range=ip_range,
             limit=args.limit,
             timeout=args.timeout,
-            json_output=args.json
+            json_output=args.json,
+            verbose=args.verbose
         ))
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Discovery stopped by user[/bold yellow]")

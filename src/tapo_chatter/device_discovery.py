@@ -158,12 +158,13 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
     # Collect results as they complete
     completed = 0
     found = 0
+    errors = 0
     with console.status(f"[bold green]Scanning network... (0/{len(tasks)} completed, 0 devices found)") as status:
         for task in asyncio.as_completed(tasks):
             try:
                 is_device, device_instance = await task
                 completed += 1
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found)")
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
                 
                 if is_device and device_instance:
                     found += 1
@@ -171,15 +172,26 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                     ip = device_instance['ip_address']
                     nickname = device_instance['device_info'].get('nickname', 'Unknown')
                     model = device_instance['device_info'].get('model', 'Unknown')
-                    status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found) - Found {model} '{nickname}' at {ip}")
+                    status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors) - Found {model} '{nickname}' at {ip}")
             except asyncio.TimeoutError:
+                # Just a timeout, very normal for non-Tapo devices or offline devices
                 completed += 1
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found)")
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
+            except asyncio.CancelledError:
+                # Task was cancelled, don't count as completed
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
+            except ConnectionResetError:
+                # Connection reset by peer, not a Tapo device
+                completed += 1
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
             except Exception as e:
+                # Other errors, might be worth logging in debug mode
                 completed += 1
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found)")
+                errors += 1
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
     
-    console.print(f"[green]Discovered {len(device_data)} Tapo devices on the network[/green]")
+    console.print(f"[green]Scan complete: Discovered {len(device_data)} Tapo devices on the network[/green]")
+    console.print(f"[dim]({completed} IPs scanned, {errors} connection errors)[/dim]")
     return device_data
 
 
