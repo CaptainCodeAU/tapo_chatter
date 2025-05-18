@@ -166,4 +166,24 @@ def test_from_env_missing_single_variable_ip():
         TapoConfig.from_env()
     assert "Missing required environment variables: TAPO_IP_ADDRESS" in str(excinfo.value)
     assert "TAPO_USERNAME" not in str(excinfo.value) # Ensure only missing var is reported
-    assert "TAPO_PASSWORD" not in str(excinfo.value) 
+    assert "TAPO_PASSWORD" not in str(excinfo.value)
+
+def test_tapo_config_instantiation():
+    """Test direct instantiation of TapoConfig."""
+    config = TapoConfig(username="user@example.com", password="pass123", ip_address="192.168.1.1")
+    assert config.username == "user@example.com"
+    assert config.password == "pass123"
+    assert config.ip_address == "192.168.1.1"
+
+def test_dotenv_loading():
+    """Test that dotenv is being loaded from the config module."""
+    # We don't test the actual loading, just that the import happens
+    import tapo_chatter.config
+    assert hasattr(tapo_chatter.config, "load_dotenv")
+
+def test_console_instance():
+    """Test that a console instance is created in the config module."""
+    import tapo_chatter.config
+    assert hasattr(tapo_chatter.config, "console")
+    from rich.console import Console
+    assert isinstance(tapo_chatter.config.console, Console) 

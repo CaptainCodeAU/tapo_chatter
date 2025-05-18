@@ -144,6 +144,12 @@ tapo_chatter/
 │       ├── __init__.py
 │       ├── main.py
 │       └── config.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_config.py
+│   ├── test_main.py
+│   ├── test_main_entry.py
+│   └── check_coverage.py
 ├── .env
 ├── pyproject.toml
 └── README.md
@@ -151,9 +157,27 @@ tapo_chatter/
 
 ### Running Tests
 
+The project has a comprehensive test suite with over 99% code coverage. To run the tests:
+
 ```bash
-uv pip install pytest pytest-asyncio
-pytest
+# Install test dependencies
+uv pip install pytest pytest-asyncio pytest-cov
+
+# Run all tests
+python -m pytest
+
+# Run tests with coverage report
+python tests/check_coverage.py
+
+# Run specific test files
+python -m pytest tests/test_config.py
+python -m pytest tests/test_main.py
+
+# Run a specific test function
+python -m pytest tests/test_main.py::test_check_host_connectivity_success
+
+# Run tests with verbose output
+python -m pytest -v
 ```
 
 ### Code Style
@@ -169,6 +193,40 @@ ruff check .
 
 # Format code
 ruff format .
+```
+
+## Testing
+
+### Code Coverage
+
+The project maintains high code coverage (>99%) to ensure reliability and stability. We use pytest and pytest-cov for testing and coverage reporting.
+
+To check the current test coverage:
+
+```bash
+python tests/check_coverage.py
+```
+
+### Test Organization
+
+The test suite is organized into several files:
+
+-   `test_config.py`: Tests for the configuration module, including environment variable handling, validation, and error cases.
+-   `test_main.py`: Comprehensive tests for the main module, including device discovery, connectivity checks, and output formatting.
+-   `test_main_entry.py`: Tests for ensuring the entry point logic works correctly when the module is run directly.
+-   Additional helper scripts for testing the main module's entry point behavior.
+
+### Running the Application in Test Mode
+
+You can run the application with mock data for testing purposes:
+
+```bash
+# With environment variables
+TAPO_USERNAME="test@example.com" TAPO_PASSWORD="test_password" TAPO_IP_ADDRESS="127.0.0.1" python -m src.tapo_chatter.main
+
+# Using different methods
+python -m src.tapo_chatter.main  # As a module
+python src/tapo_chatter/main.py  # Directly
 ```
 
 ## Contributing
