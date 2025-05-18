@@ -1,0 +1,199 @@
+"""Device discovery module for Tapo Chatter.
+
+This module provides functionality to discover Tapo devices on the local network
+by concurrently probing IP addresses in a given range.
+"""
+import asyncio
+import ipaddress
+import socket
+import netifaces
+from typing import Dict, List, Tuple, Optional, Any, Union
+
+from rich.console import Console
+from tapo import ApiClient
+
+console = Console()
+
+
+def get_local_ip_subnet() -> Optional[str]:
+    """
+    Get the local IP subnet (first three octets) of the primary network interface.
+    
+    Returns:
+        Optional[str]: The subnet in the format "xxx.xxx.xxx" or None if it can't be determined.
+    """
+    try:
+        # Get default gateway interface
+        default_gateway = netifaces.gateways()['default']
+        if not default_gateway or not default_gateway.get(netifaces.AF_INET):
+            return None
+            
+        default_interface = default_gateway[netifaces.AF_INET][1]
+        
+        # Get IP address for the interface
+        interface_addresses = netifaces.ifaddresses(default_interface)
+        if not interface_addresses or not interface_addresses.get(netifaces.AF_INET):
+            return None
+            
+        ip_address = interface_addresses[netifaces.AF_INET][0]['addr']
+        # Return first three octets
+        return '.'.join(ip_address.split('.')[:3])
+    except (KeyError, IndexError, ValueError):
+        # Fallback to a common subnet if we can't determine
+        return "192.168.1"
+
+
+def get_useful_device_info(device_info: Any) -> Dict[str, Any]:
+    """
+    Extract useful properties from device_info object.
+    
+    Args:
+        device_info: The device info object returned by the Tapo API
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing useful device information
+    """
+    useful_info = {}
+    useful_properties = [
+        'avatar', 'device_on', 'model', 'nickname', 
+        'signal_level', 'ssid', 'device_id', 'device_type',
+        'hw_ver', 'mac', 'region', 'type', 'status'
+    ]
+    
+    for property in dir(device_info):
+        if property in useful_properties:
+            useful_info[property] = getattr(device_info, property)
+    
+    return useful_info
+
+
+async def device_probe(client: ApiClient, ip_address: str, timeout_seconds: float = 1.0) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """
+    Probe a single IP address for a Tapo device.
+    
+    Args:
+        client: The Tapo ApiClient instance
+        ip_address: The IP address to probe
+        timeout_seconds: Maximum time to wait for a response
+        
+    Returns:
+        Tuple[bool, Optional[Dict]]: Tuple containing (success, device_data)
+    """
+    try:
+        device = await client.generic_device(ip_address)
+        device_info = await device.get_device_info()
+        if device_info:
+            device_instance = {
+                'ip_address': ip_address,
+                'device_info': get_useful_device_info(device_info)
+            }
+            return True, device_instance
+        return False, None
+    except Exception:
+        return False, None
+
+
+async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_address: str, 
+                               timeout_seconds: float) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """
+    Probe a single IP address with semaphore for concurrency control.
+    
+    Args:
+        sem: Asyncio Semaphore for limiting concurrent connections
+        client: The Tapo ApiClient instance
+        ip_address: The IP address to probe
+        timeout_seconds: Maximum time to wait for a response
+        
+    Returns:
+        Tuple[bool, Optional[Dict]]: Tuple containing (success, device_data)
+    """
+    async with sem:
+        return await asyncio.wait_for(device_probe(client, ip_address), timeout=timeout_seconds)
+
+
+async def discover_devices(client: ApiClient, subnet: Optional[str] = None, 
+                         ip_range: Tuple[int, int] = (1, 254), 
+                         limit: int = 10, 
+                         timeout_seconds: float = 1.0) -> List[Dict[str, Any]]:
+    """
+    Discover Tapo devices on the network by probing IP addresses.
+    
+    Args:
+        client: The Tapo ApiClient instance
+        subnet: The subnet to scan (e.g. "192.168.1"), if None will be auto-detected
+        ip_range: Range of IP addresses to scan (last octet)
+        limit: Maximum number of concurrent probes
+        timeout_seconds: Maximum time to wait for each probe
+        
+    Returns:
+        List[Dict[str, Any]]: List of discovered devices with their information
+    """
+    if subnet is None:
+        subnet = get_local_ip_subnet()
+        if subnet is None:
+            console.print("[yellow]Warning: Could not determine local subnet. Falling back to 192.168.1[/yellow]")
+            subnet = "192.168.1"
+    
+    console.print(f"[yellow]Discovering Tapo devices on subnet {subnet}.* (range {ip_range[0]}-{ip_range[1]})[/yellow]")
+    console.print(f"[yellow]Using concurrency limit of {limit} with {timeout_seconds}s timeout[/yellow]")
+    
+    device_data = []
+    sem = asyncio.Semaphore(limit)  # Limit concurrent tasks
+    
+    # Validate and adjust range
+    start_ip = max(1, min(254, ip_range[0]))
+    end_ip = max(1, min(254, ip_range[1]))
+    if start_ip > end_ip:
+        start_ip, end_ip = end_ip, start_ip
+        
+    # Create tasks for each IP in the range
+    tasks = []
+    for ip_octet in range(start_ip, end_ip + 1):
+        ip_address = f"{subnet}.{ip_octet}"
+        task = asyncio.create_task(device_probe_semaphore(sem, client, ip_address, timeout_seconds))
+        tasks.append(task)
+    
+    console.print(f"[yellow]Created {len(tasks)} probe tasks, waiting for completion...[/yellow]")
+    
+    # Collect results as they complete
+    completed = 0
+    found = 0
+    with console.status(f"[bold green]Scanning network... (0/{len(tasks)} completed, 0 devices found)") as status:
+        for task in asyncio.as_completed(tasks):
+            try:
+                is_device, device_instance = await task
+                completed += 1
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found)")
+                
+                if is_device and device_instance:
+                    found += 1
+                    device_data.append(device_instance)
+                    ip = device_instance['ip_address']
+                    nickname = device_instance['device_info'].get('nickname', 'Unknown')
+                    model = device_instance['device_info'].get('model', 'Unknown')
+                    status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found) - Found {model} '{nickname}' at {ip}")
+            except asyncio.TimeoutError:
+                completed += 1
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found)")
+            except Exception as e:
+                completed += 1
+                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found)")
+    
+    console.print(f"[green]Discovered {len(device_data)} Tapo devices on the network[/green]")
+    return device_data
+
+
+async def check_host_connectivity(host: str, port: int = 80, timeout: float = 2) -> bool:
+    """Check if the host is reachable on the network."""
+    try:
+        # Create a socket object
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        
+        # Attempt to connect to the host
+        result = sock.connect_ex((host, port))
+        sock.close()
+        
+        return result == 0
+    except socket.error:
+        return False 

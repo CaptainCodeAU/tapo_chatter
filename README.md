@@ -4,6 +4,8 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
 
 ## Features
 
+### Tapo H100 Hub Monitor (`tapo-chatter`)
+
 -   🔍 Discovers and lists all child devices connected to your H100 hub.
 -   📊 Displays device information across two detailed tables:
     -   **Additional Device Information Table:**
@@ -30,6 +32,22 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
 -   📊 Enhanced error reporting and more robust device data parsing.
 -   🔄 **Real-time Monitoring:** Continuously polls the hub at a set interval (default: 10 seconds) and refreshes the device display, allowing you to see live status changes, including devices going offline.
 -   📝 Debugging information available through code modification if deeper inspection is needed.
+
+### Network Device Discovery Tool (`tapo-discover`)
+
+-   🔎 **Auto Network Detection:** Automatically identifies your local network subnet.
+-   ⚡ **Parallel Scanning:** Concurrently probes multiple IP addresses for faster discovery.
+-   🎚️ **Configurable Scanning:** Customize subnet, IP range, concurrency limit, and timeout.
+-   📋 **Detailed Device Information:** Displays comprehensive information about discovered devices, including:
+    -   IP Address
+    -   Device Name
+    -   Model
+    -   Type
+    -   Status (On/Off)
+    -   Signal Level (Color-coded)
+    -   MAC Address
+-   🔁 **Thread Management:** Uses semaphores to limit concurrent connections, preventing network overload.
+-   📊 **JSON Output Option:** Export discovery results in JSON format for further processing.
 
 ## Supported Devices
 
@@ -164,19 +182,22 @@ After ensuring prerequisites and installation (see section "4. Installing the Pa
 
 -   **Directly via Python (if you haven\'t installed the package or are in a development environment where you used `pip install -e .`):**
     Navigate to the project\'s root directory in your terminal and run:
-    `bash
-python -m src.tapo_chatter.main
-`
+
+    ```bash
+    python -m src.tapo_chatter.main
+    ```
+
     Alternatively:
-    `bash
-python src/tapo_chatter/main.py
-`
+
+    ```bash
+    python src/tapo_chatter/main.py
+    ```
 
 -   **As an Installed Console Script (if you installed the package, e.g., via `pip install .` or `pip install git+...`):**
     You can run the application from anywhere by simply typing:
-    `bash
-tapo-chatter
-`
+    ```bash
+    tapo-chatter
+    ```
 
 **Stopping the Application:**
 In either mode, press `Ctrl+C` to stop the real-time monitoring and exit the application.
@@ -187,6 +208,43 @@ The application will:
 2. Check network connectivity to your hub
 3. Initialize connection with the hub
 4. Retrieve and display information about connected devices
+
+**3. Using the Device Discovery Tool:**
+
+The package also includes a tool to discover Tapo devices on your local network by scanning IP addresses in parallel:
+
+-   **Run the discovery tool:**
+
+    ```bash
+    tapo-discover
+    ```
+
+-   **Customize discovery options:**
+
+    ```bash
+    # Specify subnet to scan
+    tapo-discover --subnet 192.168.0
+
+    # Limit IP range to scan (last octet)
+    tapo-discover --range 50-100
+
+    # Adjust concurrency and timeout
+    tapo-discover --limit 20 --timeout 0.5
+
+    # Output results in JSON format
+    tapo-discover --json
+    ```
+
+-   **Full help information:**
+    ```bash
+    tapo-discover --help
+    ```
+
+The discovery tool:
+
+1. Auto-detects your network subnet
+2. Scans for Tapo devices on your local network
+3. Displays detailed information about discovered devices
 
 ## Troubleshooting
 
@@ -266,7 +324,9 @@ tapo_chatter/
 │   └── tapo_chatter/
 │       ├── __init__.py
 │       ├── main.py
-│       └── config.py
+│       ├── config.py
+│       ├── device_discovery.py
+│       └── discover.py
 ├── tests/
 │   ├── __init__.py
 │   ├── test_config.py

@@ -4,6 +4,7 @@ __version__ = "0.1.0"
 
 import asyncio
 from .config import TapoConfig
+from .device_discovery import discover_devices, check_host_connectivity
 
-__all__ = ["TapoConfig"]
+__all__ = ["TapoConfig", "discover_devices", "check_host_connectivity"]
 

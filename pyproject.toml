@@ -23,6 +23,7 @@ dependencies = [
     "python-dotenv>=1.0.0",  # For loading environment variables
     "rich>=13.7.0",  # For beautiful console output
     "platformdirs>=4.0.0", # For platform-specific user directories
+    "netifaces>=0.11.0",  # For network interface discovery
 ]
 
 [project.optional-dependencies]
@@ -39,6 +40,7 @@ Repository = "https://github.com/yourusername/tapo_chatter" # Optional: Update U
 
 [project.scripts]
 tapo-chatter = "tapo_chatter.main:main_cli"
+tapo-discover = "tapo_chatter.discover:discover_cli"
 
 # Use hatch to manage version based on __init__.py
 [tool.hatch.version]
