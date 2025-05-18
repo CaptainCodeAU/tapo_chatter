@@ -241,7 +241,7 @@ The package also includes a tool to discover Tapo devices on your local network 
     # Output results in JSON format
     tapo-discover --json
 
-    # Enable verbose error logging
+    # Enable cleaner error summary report
     tapo-discover --verbose
 
     # Combine multiple options for optimized scanning
@@ -260,7 +260,7 @@ The discovery tool:
 3. Displays detailed information about discovered devices
 4. Shows connection status for hubs/sensors and power state for plugs/bulbs
 5. Provides scan statistics showing total IPs scanned and connection errors
-6. With verbose mode, displays detailed error information for troubleshooting
+6. With verbose mode, displays categorized error summary for network troubleshooting
 
 ## Troubleshooting
 
@@ -294,6 +294,25 @@ The application's code contains commented-out sections (primarily in `src/tapo_c
 -   Connection status messages.
 
 This debug output can be helpful for identifying issues or understanding the data flow if you encounter problems or wish to extend the application.
+
+### Network Scan Error Summary
+
+When running the discovery tool with the `--verbose` flag, you'll see a clean, organized table of error types instead of raw error messages:
+
+```
+Connection Statistics:
+                      Network Scan Results
+┏━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Error Type            ┃ Count ┃ Description                             ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Timeout               │ 94    │ Normal timeouts from non-responsive IPs │
+│ Connection Refused    │ 5     │ Device refused connection (port closed) │
+│ Network Unreachable   │ 3     │ Network segment unreachable             │
+│ Hash Mismatch         │ 2     │ Security hash mismatch (non-Tapo device)│
+└────────────────────────┴───────┴─────────────────────────────────────────┘
+```
+
+This summary helps you understand network connectivity issues without overwhelming you with technical error messages.
 
 ### Cursor AI Codebase Understanding (Cursor Rules)
 
