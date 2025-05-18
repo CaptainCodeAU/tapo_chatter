@@ -4,17 +4,30 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
 
 ## Features
 
--   🔍 Discovers and lists all child devices connected to your H100 hub
--   📊 Displays detailed device information including:
-    -   Device name and ID
-    -   Device type
-    -   Online/offline status
-    -   Temperature (for compatible sensors)
-    -   Humidity levels (for compatible sensors)
-    -   Battery levels (for battery-powered devices)
--   🚦 Network connectivity checking
--   🔐 Secure authentication handling
--   📝 Detailed logging and debugging information
+-   🔍 Discovers and lists all child devices connected to your H100 hub.
+-   📊 Displays device information across two detailed tables:
+    -   **Additional Device Information Table:**
+        -   Device Name
+        -   Hardware Version (HW Ver)
+        -   MAC Address
+        -   Region
+        -   Signal Level
+        -   Battery Status (OK/Low)
+        -   Jamming RSSI (Color-coded: Green for good, Yellow for fair, Red for poor)
+        -   Report Interval (s)
+        -   Last Onboarded Timestamp
+    -   **Main Device Status Table:**
+        -   Device Name
+        -   Device ID
+        -   Device Type
+        -   Online/Offline Status
+        -   RSSI (Received Signal Strength Indicator, color-coded: Green for good, Yellow for fair, Red for poor)
+        -   Details: Sensor-specific status (e.g., "Motion: Clear", "Contact: Closed").
+            -   Critical states like "Motion: Detected" and "Contact: Open" are highlighted in bold red.
+            -   Temperature and Humidity levels are shown here for compatible sensors (e.g., T31x).
+-   🚦 Network connectivity checking to the hub.
+-   🔐 Secure authentication handling (credentials are not displayed in logs or console during normal operation).
+-   📝 Debugging information available through code modification if deeper inspection is needed.
 
 ## Supported Devices
 
@@ -111,11 +124,13 @@ The application will:
 
 ### Debug Mode
 
-The application includes detailed debug output that can help identify issues:
+The application's code contains commented-out sections (primarily in `src/tapo_chatter/main.py`) that can be re-enabled to provide detailed debug output. This includes:
 
--   Shows raw API responses
--   Displays detailed connection status
--   Provides information about data structure and parsing
+-   Raw API responses from the Tapo Hub.
+-   Detailed data structures after processing.
+-   Connection status messages.
+
+This debug output can be helpful for identifying issues or understanding the data flow if you encounter problems or wish to extend the application.
 
 ## Development
 

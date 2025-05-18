@@ -4,13 +4,6 @@ __version__ = "0.1.0"
 
 import asyncio
 from .config import TapoConfig
-from .main import main
 
-__all__ = ["TapoConfig", "main"]
+__all__ = ["TapoConfig"]
 
-if __name__ == "__main__":
-    asyncio.run(main())
-
-def hello() -> str:
-    """Return a greeting message."""
-    return f"Hello from tapo_chatter version {__version__}!"
