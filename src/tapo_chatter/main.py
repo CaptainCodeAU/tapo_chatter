@@ -2,6 +2,7 @@
 import asyncio
 import socket
 import datetime # Added for timestamp conversion
+import os # Added for clearing screen
 from typing import Any, Dict, List, Optional
 
 from rich.console import Console
@@ -305,29 +306,34 @@ async def main() -> None:
         config = TapoConfig.from_env()
         console.print("[green]Configuration loaded successfully[/green]")
         
-        # Print configuration (masked password) - COMMENTED OUT
-        # console.print(Panel(
-        #     f"[cyan]Username:[/cyan] HIDDEN\\n" 
-        #     f"[cyan]IP Address:[/cyan] {config.ip_address}\\n"
-        #     f"[cyan]Password:[/cyan] {'*' * len(config.password)}",
-        #     title="Configuration",
-        #     border_style="blue"
-        # ))
-        
         # Initialize the API client
         console.print("[yellow]Initializing Tapo API client...[/yellow]")
         client = ApiClient(config.username, config.password)
         console.print("[green]API client initialized[/green]")
         
-        # Get child devices
-        devices = await get_child_devices(client, config.ip_address)
-        
-        # Print the additional device information table
-        print_additional_device_info_table(devices)
-        
-        # Print the main devices table
-        print_device_table(devices)
-        
+        refresh_interval_seconds = 10
+        console.print(f"[blue]Starting real-time monitoring. Refreshing every {refresh_interval_seconds} seconds. Press Ctrl+C to exit.[/blue]")
+        await asyncio.sleep(2) # Brief pause before first clear
+
+        while True:
+            # Clear the console
+            os.system('cls' if os.name == 'nt' else 'clear')
+            
+            console.print(f"[bold blue]Last updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/bold blue]")
+            # Get child devices
+            devices = await get_child_devices(client, config.ip_address)
+            
+            # Print the additional device information table
+            print_additional_device_info_table(devices)
+            
+            # Print the main devices table
+            print_device_table(devices)
+            
+            await asyncio.sleep(refresh_interval_seconds)
+            
+    except KeyboardInterrupt:
+        # This is now handled by main_cli, but kept here as a safeguard if main() is called directly.
+        console.print("\n[bold yellow]Monitoring stopped by user.[/bold yellow]")
     except Exception as e:
         console.print(Panel(
             f"[red]Error: {str(e)}[/red]",
@@ -337,5 +343,15 @@ async def main() -> None:
         raise
 
 
+def main_cli():
+    """Synchronous entry point for the console script."""
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        console.print("\n[bold yellow]Exiting application...[/bold yellow]")
+    # Other exceptions are caught and printed within main() or TapoConfig
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run(main()) # Old way
+    main_cli() # New way, to handle KeyboardInterrupt gracefully here

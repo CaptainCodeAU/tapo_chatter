@@ -22,6 +22,7 @@ dependencies = [
     "tapo>=0.2.0",  # Core Tapo library for device interaction
     "python-dotenv>=1.0.0",  # For loading environment variables
     "rich>=13.7.0",  # For beautiful console output
+    "platformdirs>=4.0.0", # For platform-specific user directories
 ]
 
 [project.optional-dependencies]
@@ -29,16 +30,15 @@ dev = [
     "ruff",
     "pytest",
     "pytest-cov",
-    # Add other dev tools like type checkers (mypy, pyright) if desired
+    # Add other dev tools like type checkers (mypy) if desired
 ]
 
 [project.urls]
 Homepage = "https://github.com/yourusername/tapo_chatter" # Optional: Update URL
 Repository = "https://github.com/yourusername/tapo_chatter" # Optional: Update URL
 
-# [project.scripts]
-# # Example: Define console scripts if your package has executables
-# # my-cli = "tapo_chatter.cli:main"
+[project.scripts]
+tapo-chatter = "tapo_chatter.main:main_cli"
 
 # Use hatch to manage version based on __init__.py
 [tool.hatch.version]

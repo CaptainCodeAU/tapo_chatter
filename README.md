@@ -1,6 +1,6 @@
 # Tapo H100 Device Lister
 
-A Python application that connects to a TP-Link Tapo H100 Hub and lists all connected child devices with their status and details. This tool is particularly useful for managing and monitoring Tapo smart home devices connected to your H100 hub.
+A Python application that connects to a TP-Link Tapo H100 Hub and lists all connected child devices with their status and details. This tool is particularly useful for managing and monitoring Tapo smart home devices connected to your H100 hub, now with real-time status updates.
 
 ## Features
 
@@ -28,6 +28,7 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
 -   🚦 Network connectivity checking to the hub.
 -   🔐 Secure authentication handling (credentials are not displayed in logs or console during normal operation).
 -   📊 Enhanced error reporting and more robust device data parsing.
+-   🔄 **Real-time Monitoring:** Continuously polls the hub at a set interval (default: 10 seconds) and refreshes the device display, allowing you to see live status changes, including devices going offline.
 -   📝 Debugging information available through code modification if deeper inspection is needed.
 
 ## Supported Devices
@@ -43,7 +44,7 @@ The application can detect and display information for various Tapo devices conn
 
 ## Prerequisites
 
--   Python 3.11 or higher
+-   Python 3.13+ installed.
 -   [`uv`](https://github.com/astral-sh/uv) package manager
 -   [`direnv`](https://direnv.net/) (recommended for environment management)
 -   A Tapo account
@@ -69,29 +70,116 @@ The application can detect and display information for various Tapo devices conn
     ```
 
 3. **Configure Environment Variables:**
-   Create a `.env` file in the project root:
+   The application requires your Tapo username (email), password, and the IP address of your H100 hub.
+   These can be configured in several ways, with the following order of precedence (highest first):
 
-    ```bash
+    1. **Shell Environment Variables:** Export `TAPO_USERNAME`, `TAPO_PASSWORD`, and `TAPO_IP_ADDRESS` in your shell.
+    2. **User-Specific `.env` File:** Create a file named `.env` in the application\'s user-specific configuration directory. This is the recommended way for `pipx` users or for a global setup.
+        - **Linux/macOS:** `~/.config/tapo_chatter/.env`
+        - **Windows:** Typically `C:\Users\<YourUser>\AppData\Roaming\tapo_chatter\Config\.env` (The application will create the `tapo_chatter` directory if it doesn\'t exist; you just need to create the `.env` file inside it).
+          You can find the exact path for your system if the application fails to find the configuration variables as it will be printed in the error message.
+    3. **Local Project `.env` File:** Create a file named `.env` in your project\'s root directory (or any parent directory from where you run the command if not installed).
+
+    **Example `.env` file content:**
+
+    ```.env
     TAPO_USERNAME="your_tapo_email@example.com"
     TAPO_PASSWORD="your_tapo_password"
     TAPO_IP_ADDRESS="your_h100_hub_ip_address"
     ```
 
-    Or set them in your shell:
+    **Note on Configuration for `pipx` users:**
+    After installing with `pipx`, `tapo-chatter` will be available globally. To configure credentials, it is recommended to create a `.env` file in the user-specific configuration directory mentioned in step 3 (Configure Environment Variables) above. For example:
+
+    - **Linux/macOS:** `~/.config/tapo_chatter/.env`
+    - **Windows:** `C:\Users\<YourUser>\AppData\Roaming\tapo_chatter\Config\.env` (or similar path indicated by `platformdirs`)
+      Alternatively, you can set `TAPO_USERNAME`, `TAPO_PASSWORD`, and `TAPO_IP_ADDRESS` as system environment variables in your shell.
+
+**4. Installing the Package:**
+
+You have a few options to install and use `tapo-chatter`:
+
+-   **For Development (Editable Install):**
+    If you plan to modify the code, it's best to do an editable install from your local clone. This way, changes to the source code are immediately reflected.
+    Navigate to the project's root directory:
 
     ```bash
-    export TAPO_USERNAME="your_tapo_email@example.com"
-    export TAPO_PASSWORD="your_tapo_password"
-    export TAPO_IP_ADDRESS="your_h100_hub_ip_address"
+    # Using pip
+    pip install -e .
+    # Or using uv
+    # uv pip install -e .
     ```
+
+-   **Standard Local Install:**
+    To install the package as it is from your local clone (changes won't reflect without re-installation):
+    Navigate to the project's root directory:
+
+    ```bash
+    # Using pip
+    pip install .
+    # Or using uv
+    # uv pip install .
+    ```
+
+-   **Installing from GitHub (for end-users or collaborators):**
+    Once the project is pushed to a public GitHub repository (e.g., `https://github.com/yourusername/tapo_chatter`), others can install it directly using pip:
+    ```bash
+    pip install git+https://github.com/yourusername/tapo_chatter.git
+    ```
+    Replace `yourusername` with the actual GitHub username and `tapo_chatter` with the repository name if it differs.
+    To install a specific version or branch, append `@<tag_name_or_branch_name>` to the URL:
+    ```bash
+    pip install git+https://github.com/yourusername/tapo_chatter.git@v0.1.0
+    ```
+
+*   **Installing with `pipx` (Recommended for CLI tools):**
+    `pipx` installs Python applications into isolated environments, which is great for CLI tools.
+    First, ensure you have `pipx` installed (see [pipx installation guide](https://pypa.github.io/pipx/installation/)).
+    Then, you can install `tapo-chatter` directly from GitHub:
+    ```bash
+    pipx install git+https://github.com/yourusername/tapo_chatter.git
+    ```
+    To install a specific version:
+    ```bash
+    pipx install git+https://github.com/yourusername/tapo_chatter.git@v0.1.0
+    ```
+    **Note on Configuration for `pipx` users:**
+    After installing with `pipx`, `tapo-chatter` will be available globally. You'll need to ensure the required environment variables (`TAPO_USERNAME`, `TAPO_PASSWORD`, `TAPO_IP_ADDRESS`) are set. You can do this by:
+    1.  Creating a `.env` file in the directory from which you run the `tapo-chatter` command (or any parent directory).
+    2.  Setting these as system environment variables in your shell (e.g., in your `.bashrc` or `.zshrc`).
 
 ## Usage
 
-Run the application:
+The application will connect to your Tapo H100 hub, retrieve information about connected child devices, and display it in your console. With the new real-time monitoring feature, the display will automatically refresh every 10 seconds.
 
-```bash
-python -m tapo_chatter.main
-```
+**1. Ensure Prerequisites are Met:**
+
+-   Python 3.13+ installed.
+-   Environment variables (`TAPO_USERNAME`, `TAPO_PASSWORD`, `TAPO_IP_ADDRESS`) are set either in a `.env` file in the project root or exported in your shell. Refer to the "Installation" section for details on setting these up.
+-   Your Tapo H100 hub is online and on the same network.
+
+**2. Running the Application:**
+
+After ensuring prerequisites and installation (see section "4. Installing the Package" above), you can run the application:
+
+-   **Directly via Python (if you haven\'t installed the package or are in a development environment where you used `pip install -e .`):**
+    Navigate to the project\'s root directory in your terminal and run:
+    `bash
+python -m src.tapo_chatter.main
+`
+    Alternatively:
+    `bash
+python src/tapo_chatter/main.py
+`
+
+-   **As an Installed Console Script (if you installed the package, e.g., via `pip install .` or `pip install git+...`):**
+    You can run the application from anywhere by simply typing:
+    `bash
+tapo-chatter
+`
+
+**Stopping the Application:**
+In either mode, press `Ctrl+C` to stop the real-time monitoring and exit the application.
 
 The application will:
 
