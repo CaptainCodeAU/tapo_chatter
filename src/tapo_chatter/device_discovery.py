@@ -113,8 +113,10 @@ async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_a
 
 async def discover_devices(client: ApiClient, subnet: Optional[str] = None, 
                          ip_range: Tuple[int, int] = (1, 254), 
-                         limit: int = 10, 
-                         timeout_seconds: float = 1.0) -> List[Dict[str, Any]]:
+                         limit: int = 20,  # Increased from 10 to 20 for faster scanning
+                         timeout_seconds: float = 0.5,  # Decreased from 1.0 to 0.5 for faster scanning
+                         stop_after: Optional[int] = None  # Stop after finding this many devices
+                         ) -> List[Dict[str, Any]]:
     """
     Discover Tapo devices on the network by probing IP addresses.
     
@@ -122,8 +124,9 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
         client: The Tapo ApiClient instance
         subnet: The subnet to scan (e.g. "192.168.1"), if None will be auto-detected
         ip_range: Range of IP addresses to scan (last octet)
-        limit: Maximum number of concurrent probes
-        timeout_seconds: Maximum time to wait for each probe
+        limit: Maximum number of concurrent probes (higher means faster scanning)
+        timeout_seconds: Maximum time to wait for each probe (lower means faster scanning)
+        stop_after: Stop scanning after finding this many devices (None means scan all IPs)
         
     Returns:
         List[Dict[str, Any]]: List of discovered devices with their information
@@ -173,6 +176,15 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                     nickname = device_instance['device_info'].get('nickname', 'Unknown')
                     model = device_instance['device_info'].get('model', 'Unknown')
                     status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors) - Found {model} '{nickname}' at {ip}")
+                    
+                    # Check if we've reached the desired number of devices
+                    if stop_after is not None and found >= stop_after:
+                        console.print(f"[yellow]Reached target of {stop_after} devices, stopping scan early[/yellow]")
+                        # Cancel remaining tasks
+                        for t in tasks:
+                            if not t.done():
+                                t.cancel()
+                        break
             except asyncio.TimeoutError:
                 # Just a timeout, very normal for non-Tapo devices or offline devices
                 completed += 1

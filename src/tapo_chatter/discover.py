@@ -86,8 +86,9 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
 
 async def discover_main(subnet: Optional[str] = None, 
                        ip_range: tuple = (1, 254), 
-                       limit: int = 10, 
-                       timeout: float = 1.0,
+                       limit: int = 20,  # Increased default from 10 to 20
+                       timeout: float = 0.5,  # Decreased default from 1.0 to 0.5
+                       stop_after: Optional[int] = None,  # New parameter
                        json_output: bool = False,
                        verbose: bool = False) -> None:
     """
@@ -96,8 +97,9 @@ async def discover_main(subnet: Optional[str] = None,
     Args:
         subnet: Network subnet to scan (e.g. "192.168.1")
         ip_range: Range of IP addresses to scan (last octet)
-        limit: Maximum number of concurrent probes
-        timeout: Timeout for each probe in seconds
+        limit: Maximum number of concurrent probes (higher = faster scanning)
+        timeout: Timeout for each probe in seconds (lower = faster scanning)
+        stop_after: Stop scanning after finding this many devices
         json_output: Whether to output JSON instead of a table
         verbose: Whether to show verbose error output
     """
@@ -118,7 +120,8 @@ async def discover_main(subnet: Optional[str] = None,
             subnet=subnet,
             ip_range=ip_range,
             limit=limit,
-            timeout_seconds=timeout
+            timeout_seconds=timeout,
+            stop_after=stop_after
         )
         
         if json_output:
@@ -145,10 +148,12 @@ def discover_cli():
                       help="Network subnet to scan (e.g. 192.168.1)")
     parser.add_argument("-r", "--range", type=str, default="1-254",
                       help="Range of IP addresses to scan, format: start-end (e.g. 1-254)")
-    parser.add_argument("-l", "--limit", type=int, default=10,
-                      help="Maximum number of concurrent network probes (default: 10)")
-    parser.add_argument("-t", "--timeout", type=float, default=1.0,
-                      help="Timeout for each probe in seconds (default: 1.0)")
+    parser.add_argument("-l", "--limit", type=int, default=20,
+                      help="Maximum number of concurrent network probes (default: 20)")
+    parser.add_argument("-t", "--timeout", type=float, default=0.5,
+                      help="Timeout for each probe in seconds (default: 0.5)")
+    parser.add_argument("-n", "--num-devices", type=int, default=None,
+                      help="Stop after finding this many devices (default: scan entire range)")
     parser.add_argument("-j", "--json", action="store_true",
                       help="Output results in JSON format")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -170,6 +175,7 @@ def discover_cli():
             ip_range=ip_range,
             limit=args.limit,
             timeout=args.timeout,
+            stop_after=args.num_devices,
             json_output=args.json,
             verbose=args.verbose
         ))
