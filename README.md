@@ -37,6 +37,8 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
 
 -   🔎 **Auto Network Detection:** Automatically identifies your local network subnet.
 -   ⚡ **Parallel Scanning:** Concurrently probes multiple IP addresses for faster discovery.
+-   🚀 **Optimized for Speed:** Higher default concurrency (20) and lower timeout (0.5s) for faster scanning.
+-   🎯 **Early Stopping:** Ability to stop scanning after finding a specific number of devices.
 -   🎚️ **Configurable Scanning:** Customize subnet, IP range, concurrency limit, and timeout.
 -   📋 **Detailed Device Information:** Displays comprehensive information about discovered devices, including:
     -   IP Address
@@ -230,8 +232,11 @@ The package also includes a tool to discover Tapo devices on your local network 
     # Limit IP range to scan (last octet)
     tapo-discover --range 50-100
 
-    # Adjust concurrency and timeout
-    tapo-discover --limit 20 --timeout 0.5
+    # Adjust concurrency and timeout for faster scanning
+    tapo-discover --limit 30 --timeout 0.3
+
+    # Stop scanning after finding a specific number of devices
+    tapo-discover --num-devices 5
 
     # Output results in JSON format
     tapo-discover --json
@@ -239,8 +244,8 @@ The package also includes a tool to discover Tapo devices on your local network 
     # Enable verbose error logging
     tapo-discover --verbose
 
-    # Combine multiple options
-    tapo-discover --subnet 192.168.107 --range 220-230 --timeout 2.0 --limit 5 --verbose
+    # Combine multiple options for optimized scanning
+    tapo-discover --subnet 192.168.107 --range 220-230 --timeout 0.3 --limit 30 --num-devices 3 --verbose
     ```
 
 -   **Full help information:**
