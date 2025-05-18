@@ -542,7 +542,7 @@ def test_print_additional_device_info_table_variants(mock_devices):
         
         # Verify table was created and printed
         mock_table.assert_called_once()
-        mock_table_instance.add_row.call_count == len(mock_devices)
+        assert mock_table_instance.add_row.call_count == len(mock_devices)
         assert mock_console.print.call_count >= 1
         mock_console.print.assert_any_call(mock_table_instance)
 
