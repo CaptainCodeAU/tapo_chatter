@@ -27,6 +27,7 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
             -   Temperature and Humidity levels are shown here for compatible sensors (e.g., T31x).
 -   🚦 Network connectivity checking to the hub.
 -   🔐 Secure authentication handling (credentials are not displayed in logs or console during normal operation).
+-   📊 Enhanced error reporting and more robust device data parsing.
 -   📝 Debugging information available through code modification if deeper inspection is needed.
 
 ## Supported Devices
@@ -151,7 +152,7 @@ tapo_chatter/
 ### Running Tests
 
 ```bash
-uv pip install pytest
+uv pip install pytest pytest-asyncio
 pytest
 ```
 
