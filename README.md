@@ -149,6 +149,10 @@ The rules cover:
 -   Testing Guide (`tests/`)
 -   Dependencies and Development (`pyproject.toml`)
 -   Device Data Processing (`src/tapo_chatter/`)
+-   Linting Guide (`.cursor/rules/linting-guide.mdc`)
+-   Formatting Guide (`.cursor/rules/formatting-guide.mdc`)
+-   Docstring Guide (`.cursor/rules/docstring-guide.mdc`)
+-   Commit Helper (`.cursor/rules/commit-helper.mdc`)
 
 These rules are written in Markdown with Cursor-specific extensions and are automatically used by the Cursor AI when interacting with this project.
 
@@ -160,9 +164,13 @@ These rules are written in Markdown with Cursor-specific extensions and are auto
 tapo_chatter/
 ├── .cursor/
 │   └── rules/
+│       ├── commit-helper.mdc
 │       ├── configuration-handling.mdc
 │       ├── dependencies-and-development.mdc
 │       ├── device-data-processing.mdc
+│       ├── docstring-guide.mdc
+│       ├── formatting-guide.mdc
+│       ├── linting-guide.mdc
 │       ├── main-module-structure.mdc
 │       ├── project-overview.mdc
 │       └── testing-guide.mdc
