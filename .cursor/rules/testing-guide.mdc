@@ -1,0 +1,61 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+rule-type: pattern-hint
+display-name: Testing Guide
+priority: 800
+enable-rule: true
+description: Information about the testing approach and how to run tests
+file-pattern: tests/**/*.py
+---
+
+# Testing Guide
+
+This project uses pytest for testing with high code coverage (>99%).
+
+## Key Test Files
+
+- **[tests/test_config.py](mdc:tests/test_config.py)**: Tests for configuration module
+  - Environment variable handling
+  - Validation functions
+  - Error cases
+
+- **[tests/test_main.py](mdc:tests/test_main.py)**: Tests for the main module
+  - Device discovery
+  - Connectivity checks
+  - Output formatting
+  - Exception handling
+
+- **[tests/test_main_entry.py](mdc:tests/test_main_entry.py)**: Tests for the entry point logic
+  - Module execution behavior
+  - Command-line behavior
+
+- **[tests/check_coverage.py](mdc:tests/check_coverage.py)**: Script for testing and verifying code coverage
+
+## Running Tests
+
+```bash
+# Run all tests
+python -m pytest
+
+# Run tests with coverage report
+python tests/check_coverage.py
+
+# Run specific test files
+python -m pytest tests/test_config.py
+python -m pytest tests/test_main.py
+
+# Run a specific test function
+python -m pytest tests/test_main.py::test_check_host_connectivity_success
+```
+
+## Test Configuration
+
+The pytest configuration in [pyproject.toml](mdc:pyproject.toml) specifies:
+- Minimum pytest version
+- Coverage reporting options
+- Test paths
+- Python file patterns for test discovery

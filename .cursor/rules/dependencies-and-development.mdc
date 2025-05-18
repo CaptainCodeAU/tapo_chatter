@@ -1,0 +1,68 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+rule-type: file-hint
+display-name: Dependencies and Development
+priority: 800
+enable-rule: true
+description: Project dependencies and development setup instructions
+file-pattern: pyproject.toml
+---
+
+# Dependencies and Development
+
+## Project Dependencies
+
+The [pyproject.toml](mdc:pyproject.toml) file defines all dependencies for this project:
+
+### Core Dependencies
+- **tapo>=0.2.0**: Core library for interacting with Tapo devices
+- **python-dotenv>=1.0.0**: For loading environment variables from .env files
+- **rich>=13.7.0**: For beautiful console output with tables and styling
+
+### Development Dependencies
+- **ruff**: For linting and code formatting
+- **pytest**: For test execution
+- **pytest-cov**: For code coverage reporting
+
+## Development Setup
+
+1. Setup Python environment with Python 3.13:
+```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create and activate virtual environment
+python_setup 3.13
+```
+
+2. Configure environment variables:
+   - Create a `.env` file based on [.env.example](mdc:.env.example)
+   - Or set them in your shell
+
+3. Install dependencies:
+```bash
+pip install -e .  # Install the package in development mode
+pip install -e ".[dev]"  # Install development dependencies
+```
+
+## Code Style
+
+This project uses ruff for linting and formatting:
+
+```bash
+# Check code
+ruff check .
+
+# Format code
+ruff format .
+```
+
+The configuration for ruff is in the [pyproject.toml](mdc:pyproject.toml) file, specifying:
+- Python version targeting
+- Line length and indent width
+- Enabled linter rules
+- Import sorting configuration

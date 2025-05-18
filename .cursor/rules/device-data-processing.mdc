@@ -1,0 +1,62 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+rule-type: pattern-hint
+display-name: Device Data Processing
+priority: 850
+enable-rule: true
+description: How device data is processed and formatted for display
+file-pattern: src/tapo_chatter/**/*.py
+---
+
+# Device Data Processing
+
+## Data Flow
+
+1. **Retrieval**: The application connects to a Tapo H100 Hub and retrieves raw device data using the [tapo](mdc:src/tapo_chatter/main.py) library.
+
+2. **Processing**: In [get_child_devices](mdc:src/tapo_chatter/main.py), the raw device data is processed into a standardized format:
+   ```python
+   processed_devices: List[Dict[str, Any]] = []
+   # ... processing logic ...
+   ```
+
+3. **Normalization**: Various device attributes are normalized to handle differences in API responses:
+   - Device type extraction from either `device_type` or `type`
+   - Status conversion from various formats to a consistent 0/1 representation
+   - Extraction of sensor-specific data (motion, contact, temperature, etc.)
+
+4. **Presentation**: The processed data is displayed in two tables:
+   - Additional Device Information table (hardware, network, timestamps)
+   - Main Device Status table (online status, sensor readings)
+
+## Device Data Structure
+
+After processing, each device is represented as a dictionary with this structure:
+
+```python
+{
+    "nickname": "Living Room Motion",   # Device name
+    "device_id": "12345ABCDE",          # Unique device ID
+    "device_type": "T100",              # Device type/model
+    "status": 1,                        # 1 for Online, 0 for Offline
+    "rssi": -67,                        # Signal strength
+    "params": {                         # Additional parameters
+        "battery_state": "OK",          # Battery status
+        "motion_status": "Clear",       # For motion sensors
+        "contact_status": "Closed",     # For contact sensors
+        "temperature": 22.5,            # For temperature sensors
+        "humidity": 45,                 # For humidity sensors
+        "hw_ver": "1.0.0",              # Hardware version
+        "mac": "AA:BB:CC:DD:EE:FF",     # MAC address
+        "region": "EU",                 # Region
+        "report_interval": "60",        # Report interval
+        "signal_level": "Good",         # Signal level
+        "jamming_rssi": -95,            # Jamming RSSI
+        "last_onboarded": "2023-04-01 12:34:56"  # Timestamp
+    }
+}
+```

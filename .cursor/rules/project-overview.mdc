@@ -1,0 +1,45 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+rule-type: global-hint
+display-name: Project Overview
+priority: 1000
+enable-rule: true
+description: Overview of the Tapo H100 Device Lister application
+---
+
+# Project Overview: Tapo H100 Device Lister
+
+This Python application connects to a TP-Link Tapo H100 Hub and lists all connected child devices with their status and details.
+
+## Main Components
+
+- **[src/tapo_chatter/main.py](mdc:src/tapo_chatter/main.py)**: Core implementation that connects to the hub and displays device information
+- **[src/tapo_chatter/config.py](mdc:src/tapo_chatter/config.py)**: Configuration handling via environment variables
+- **[pyproject.toml](mdc:pyproject.toml)**: Project configuration and dependencies
+
+## Features
+
+- Discovers and lists all child devices connected to a Tapo H100 hub
+- Displays device information across two detailed tables
+- Checks network connectivity to the hub
+- Securely handles authentication
+- Color-codes signal strength indicators
+- Displays critical status information for various sensor types
+
+## Setup Requirements
+
+- Python 3.13
+- Environment variables in `.env` file:
+  - `TAPO_USERNAME`: Your Tapo account email
+  - `TAPO_PASSWORD`: Your Tapo account password
+  - `TAPO_IP_ADDRESS`: IP address of your H100 hub
+
+## Running the Application
+
+```bash
+python -m tapo_chatter.main
+```

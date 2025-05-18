@@ -133,12 +133,39 @@ The application's code contains commented-out sections (primarily in `src/tapo_c
 
 This debug output can be helpful for identifying issues or understanding the data flow if you encounter problems or wish to extend the application.
 
+### Cursor AI Codebase Understanding (Cursor Rules)
+
+This project utilizes Cursor Rules (`.cursor/rules/*.mdc`) to provide the AI with a better understanding of the codebase structure, key files, and functionalities. These rules help in:
+
+-   Faster navigation and context gathering.
+-   More accurate code generation and modification.
+-   Improved understanding of project-specific conventions.
+
+The rules cover:
+
+-   Project Overview
+-   Main Module Structure (`src/tapo_chatter/main.py`)
+-   Configuration Handling (`src/tapo_chatter/config.py`)
+-   Testing Guide (`tests/`)
+-   Dependencies and Development (`pyproject.toml`)
+-   Device Data Processing (`src/tapo_chatter/`)
+
+These rules are written in Markdown with Cursor-specific extensions and are automatically used by the Cursor AI when interacting with this project.
+
 ## Development
 
 ### Project Structure
 
 ```
 tapo_chatter/
+├── .cursor/
+│   └── rules/
+│       ├── configuration-handling.mdc
+│       ├── dependencies-and-development.mdc
+│       ├── device-data-processing.mdc
+│       ├── main-module-structure.mdc
+│       ├── project-overview.mdc
+│       └── testing-guide.mdc
 ├── src/
 │   └── tapo_chatter/
 │       ├── __init__.py
