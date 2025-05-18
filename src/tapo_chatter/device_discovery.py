@@ -79,9 +79,18 @@ async def device_probe(client: ApiClient, ip_address: str, timeout_seconds: floa
     Returns:
         Tuple[bool, Optional[Dict]]: Tuple containing (success, device_data)
     """
+    # Redirect console output to suppress raw error messages
+    import io
+    import sys
+    original_stderr = sys.stderr
+    sys.stderr = io.StringIO()  # Capture stderr output
+    
     try:
         device = await client.generic_device(ip_address)
         device_info = await device.get_device_info()
+        # Restore stderr before returning
+        sys.stderr = original_stderr
+        
         if device_info:
             device_instance = {
                 'ip_address': ip_address,
@@ -90,6 +99,8 @@ async def device_probe(client: ApiClient, ip_address: str, timeout_seconds: floa
             return True, device_instance
         return False, None
     except Exception:
+        # Restore stderr before returning
+        sys.stderr = original_stderr
         return False, None
 
 
@@ -116,7 +127,7 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                          limit: int = 20,  # Increased from 10 to 20 for faster scanning
                          timeout_seconds: float = 0.5,  # Decreased from 1.0 to 0.5 for faster scanning
                          stop_after: Optional[int] = None  # Stop after finding this many devices
-                         ) -> List[Dict[str, Any]]:
+                         ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
     """
     Discover Tapo devices on the network by probing IP addresses.
     
@@ -129,7 +140,9 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
         stop_after: Stop scanning after finding this many devices (None means scan all IPs)
         
     Returns:
-        List[Dict[str, Any]]: List of discovered devices with their information
+        Tuple[List[Dict[str, Any]], Dict[str, int]]: 
+            - List of discovered devices with their information
+            - Dictionary with error statistics by type
     """
     if subnet is None:
         subnet = get_local_ip_subnet()
@@ -162,6 +175,16 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
     completed = 0
     found = 0
     errors = 0
+    error_types = {
+        'timeout': 0,
+        'connection_refused': 0,
+        'network_unreachable': 0,
+        'invalid_url': 0,
+        'hash_mismatch': 0,
+        'cancelled': 0,
+        'other': 0
+    }
+    
     with console.status(f"[bold green]Scanning network... (0/{len(tasks)} completed, 0 devices found)") as status:
         for task in asyncio.as_completed(tasks):
             try:
@@ -188,23 +211,42 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
             except asyncio.TimeoutError:
                 # Just a timeout, very normal for non-Tapo devices or offline devices
                 completed += 1
+                error_types['timeout'] += 1
                 status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
             except asyncio.CancelledError:
                 # Task was cancelled, don't count as completed
+                error_types['cancelled'] += 1
                 status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
             except ConnectionResetError:
                 # Connection reset by peer, not a Tapo device
                 completed += 1
+                errors += 1
+                error_types['other'] += 1
                 status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
             except Exception as e:
-                # Other errors, might be worth logging in debug mode
+                # Categorize errors without showing raw messages
                 completed += 1
                 errors += 1
+                err_str = str(e)
+                
+                # Categorize common error types
+                if "Connection refused" in err_str:
+                    error_types['connection_refused'] += 1
+                elif "Network is unreachable" in err_str:
+                    error_types['network_unreachable'] += 1
+                elif "invalid URL" in err_str:
+                    error_types['invalid_url'] += 1
+                elif "hash does not match" in err_str or "Local hash" in err_str:
+                    error_types['hash_mismatch'] += 1
+                else:
+                    error_types['other'] += 1
+                
+                # Keep the status bar updated without showing the actual error
                 status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
     
     console.print(f"[green]Scan complete: Discovered {len(device_data)} Tapo devices on the network[/green]")
     console.print(f"[dim]({completed} IPs scanned, {errors} connection errors)[/dim]")
-    return device_data
+    return device_data, error_types
 
 
 async def check_host_connectivity(host: str, port: int = 80, timeout: float = 2) -> bool:

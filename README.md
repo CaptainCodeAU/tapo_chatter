@@ -50,7 +50,7 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
     -   MAC Address
 -   🔁 **Thread Management:** Uses semaphores to limit concurrent connections, preventing network overload.
 -   📊 **JSON Output Option:** Export discovery results in JSON format for further processing.
--   🔍 **Verbose Mode:** Enhanced error reporting with detailed connection errors.
+-   🔍 **Improved Error Handling:** Verbose mode now provides a structured summary of connection errors by type instead of raw error messages.
 -   📝 **Scan Statistics:** Shows comprehensive scan information including IPs scanned and error count.
 
 ## Supported Devices

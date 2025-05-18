@@ -115,7 +115,7 @@ async def discover_main(subnet: Optional[str] = None,
         console.print("[green]API client initialized[/green]")
         
         # Start discovery
-        devices = await discover_devices(
+        devices, error_stats = await discover_devices(
             client=client,
             subnet=subnet,
             ip_range=ip_range,
@@ -123,6 +123,39 @@ async def discover_main(subnet: Optional[str] = None,
             timeout_seconds=timeout,
             stop_after=stop_after
         )
+        
+        # Show verbose error statistics if requested
+        if verbose and sum(error_stats.values()) > 0:
+            console.print("\n[yellow]Connection Statistics:[/yellow]")
+            
+            # Create a table for error stats
+            stats_table = Table(title="Network Scan Results")
+            stats_table.add_column("Error Type", style="yellow")
+            stats_table.add_column("Count", style="cyan")
+            stats_table.add_column("Description", style="green")
+            
+            # Add error type descriptions
+            descriptions = {
+                'timeout': "Normal timeouts from non-responsive IPs",
+                'connection_refused': "Device refused connection (port closed)",
+                'network_unreachable': "Network segment unreachable",
+                'invalid_url': "Invalid URL format during connection",
+                'hash_mismatch': "Security hash mismatch (non-Tapo device)",
+                'cancelled': "Scan cancelled by early stop option",
+                'other': "Other connection errors"
+            }
+            
+            # Add rows for each error type that has occurrences
+            for error_type, count in error_stats.items():
+                if count > 0:
+                    stats_table.add_row(
+                        error_type.replace('_', ' ').title(),
+                        str(count),
+                        descriptions.get(error_type, "Unknown error type")
+                    )
+            
+            console.print(stats_table)
+            console.print()  # Add empty line after table
         
         if json_output:
             # Output in JSON format
