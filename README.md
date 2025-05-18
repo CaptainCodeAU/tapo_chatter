@@ -43,11 +43,13 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
     -   Device Name
     -   Model
     -   Type
-    -   Status (On/Off)
+    -   Connection Status (Online/Offline) or Power State (On/Off) depending on device type
     -   Signal Level (Color-coded)
     -   MAC Address
 -   🔁 **Thread Management:** Uses semaphores to limit concurrent connections, preventing network overload.
 -   📊 **JSON Output Option:** Export discovery results in JSON format for further processing.
+-   🔍 **Verbose Mode:** Enhanced error reporting with detailed connection errors.
+-   📝 **Scan Statistics:** Shows comprehensive scan information including IPs scanned and error count.
 
 ## Supported Devices
 
@@ -233,6 +235,12 @@ The package also includes a tool to discover Tapo devices on your local network 
 
     # Output results in JSON format
     tapo-discover --json
+
+    # Enable verbose error logging
+    tapo-discover --verbose
+
+    # Combine multiple options
+    tapo-discover --subnet 192.168.107 --range 220-230 --timeout 2.0 --limit 5 --verbose
     ```
 
 -   **Full help information:**
@@ -245,6 +253,9 @@ The discovery tool:
 1. Auto-detects your network subnet
 2. Scans for Tapo devices on your local network
 3. Displays detailed information about discovered devices
+4. Shows connection status for hubs/sensors and power state for plugs/bulbs
+5. Provides scan statistics showing total IPs scanned and connection errors
+6. With verbose mode, displays detailed error information for troubleshooting
 
 ## Troubleshooting
 
