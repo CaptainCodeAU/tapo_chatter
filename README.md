@@ -1,6 +1,6 @@
-# Tapo H100 Device Lister
+# Tapo Chatter
 
-A Python application that connects to a TP-Link Tapo H100 Hub and lists all connected child devices with their status and details. This tool is particularly useful for managing and monitoring Tapo smart home devices connected to your H100 hub, now with real-time status updates.
+A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices, with special focus on the H100 Hub ecosystem and its connected child devices.
 
 ## Features
 
@@ -56,14 +56,18 @@ A Python application that connects to a TP-Link Tapo H100 Hub and lists all conn
 
 ## Supported Devices
 
-The application can detect and display information for various Tapo devices connected to your H100 hub, including:
+The application can detect and display information for various Tapo devices on your network, including:
 
+-   H100 Hub and all connected child devices
 -   T110 Contact Sensors
 -   KE100 Radiator Controllers (TRV)
 -   T100 Motion Sensors
 -   S200B Smart Buttons
 -   T300 Water Leak Sensors
 -   T31x Temperature/Humidity Sensors
+-   P100/P110 Smart Plugs
+-   L510/L530 Smart Bulbs
+-   And other compatible Tapo smart home devices
 
 ## Prerequisites
 
@@ -71,7 +75,7 @@ The application can detect and display information for various Tapo devices conn
 -   [`uv`](https://github.com/astral-sh/uv) package manager
 -   [`direnv`](https://direnv.net/) (recommended for environment management)
 -   A Tapo account
--   A Tapo H100 Hub on your local network
+-   A Tapo H100 Hub or other Tapo devices on your local network
 
 ## Installation
 
@@ -89,7 +93,7 @@ The application can detect and display information for various Tapo devices conn
     curl -LsSf https://astral.sh/uv/install.sh | sh
 
     # Create and activate virtual environment
-    python_setup 3.11
+    python_setup 3.13
     ```
 
 3. **Configure Environment Variables:**
@@ -173,39 +177,13 @@ You have a few options to install and use `tapo-chatter`:
 
 ## Usage
 
-The application will connect to your Tapo H100 hub, retrieve information about connected child devices, and display it in your console. With the new real-time monitoring feature, the display will automatically refresh every 10 seconds.
+### H100 Hub Monitor
 
-**1. Ensure Prerequisites are Met:**
+Run the monitor to view connected devices to your H100 hub:
 
--   Python 3.13+ installed.
--   Environment variables (`TAPO_USERNAME`, `TAPO_PASSWORD`, `TAPO_IP_ADDRESS`) are set either in a `.env` file in the project root or exported in your shell. Refer to the "Installation" section for details on setting these up.
--   Your Tapo H100 hub is online and on the same network.
-
-**2. Running the Application:**
-
-After ensuring prerequisites and installation (see section "4. Installing the Package" above), you can run the application:
-
--   **Directly via Python (if you haven\'t installed the package or are in a development environment where you used `pip install -e .`):**
-    Navigate to the project\'s root directory in your terminal and run:
-
-    ```bash
-    python -m src.tapo_chatter.main
-    ```
-
-    Alternatively:
-
-    ```bash
-    python src/tapo_chatter/main.py
-    ```
-
--   **As an Installed Console Script (if you installed the package, e.g., via `pip install .` or `pip install git+...`):**
-    You can run the application from anywhere by simply typing:
-    ```bash
-    tapo-chatter
-    ```
-
-**Stopping the Application:**
-In either mode, press `Ctrl+C` to stop the real-time monitoring and exit the application.
+```bash
+tapo-chatter
+```
 
 The application will:
 
@@ -213,293 +191,63 @@ The application will:
 2. Check network connectivity to your hub
 3. Initialize connection with the hub
 4. Retrieve and display information about connected devices
+5. Continuously update the display every 10 seconds
 
-**3. Using the Device Discovery Tool:**
+**Stopping the Application:**
+Press `Ctrl+C` to stop the real-time monitoring and exit the application.
 
-The package also includes a tool to discover Tapo devices on your local network by scanning IP addresses in parallel:
+### Device Discovery Tool
 
--   **Run the discovery tool:**
+The package includes a powerful tool to discover all Tapo devices on your local network:
 
-    ```bash
-    tapo-discover
-    ```
+```bash
+tapo-discover
+```
 
--   **Customize discovery options:**
+**Customize discovery options:**
 
-    ```bash
-    # Specify subnet to scan
-    tapo-discover --subnet 192.168.0
+```bash
+# Specify subnet to scan
+tapo-discover --subnet 192.168.0
 
-    # Limit IP range to scan (last octet)
-    tapo-discover --range 50-100
+# Limit IP range to scan (last octet)
+tapo-discover --range 50-100
 
-    # Adjust concurrency and timeout for faster scanning
-    tapo-discover --limit 30 --timeout 0.3
+# Adjust concurrency and timeout for faster scanning
+tapo-discover --limit 30 --timeout 0.3
 
-    # Stop scanning after finding a specific number of devices
-    tapo-discover --num-devices 5
+# Stop scanning after finding a specific number of devices
+tapo-discover --num-devices 5
 
-    # Output results in JSON format
-    tapo-discover --json
+# Output results in JSON format
+tapo-discover --json
 
-    # Enable cleaner error summary report
-    tapo-discover --verbose
+# Enable cleaner error summary report
+tapo-discover --verbose
 
-    # Skip fetching child devices from discovered hubs
-    tapo-discover --no-children
-
-    # Combine multiple options for optimized scanning
-    tapo-discover --subnet 192.168.107 --range 220-230 --timeout 0.3 --limit 30 --num-devices 3 --verbose
-    ```
-
--   **Full help information:**
-    ```bash
-    tapo-discover --help
-    ```
--   **Example discovery output with hub child devices:**
-
-    ```
-    Found Tapo Hubs - Showing Connected Child Devices
-
-    ===== Child Devices Connected to 🧠 Hub (H100) at 192.168.107.222 =====
-
-    Fetching child devices from hub at 192.168.107.222...
-    Successfully connected to 192.168.107.222
-    Successfully initialized H100 hub
-    Successfully retrieved 2 child devices
-    Found 2 child devices connected to hub 🧠 Hub
-
-                                       Additional Device Information
-    ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
-    ┃ Device Name      ┃ HW Ver ┃ MAC          ┃ Region           ┃ Signal Lvl ┃ Battery ┃ Jamming RSSI ┃ Report Int (s) ┃ Last Onboarded      ┃
-    ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
-    │ Motion Sensor    │ 1.0    │ 74FECEB80F2B │ Australia/Sydney │ 3          │ OK      │ -112         │ 60             │ 2024-12-25 04:51:07 │
-    │ Contact Sensor 1 │ 1.0    │ 3C64CF0E9B19 │ Australia/Sydney │ 3          │ OK      │ -111         │ 16             │ 2024-12-08 22:14:55 │
-    └──────────────────┴────────┴──────────────┴──────────────────┴────────────┴─────────┴──────────────┴────────────────┴─────────────────────┘
-
-                                             Tapo H100 Child Devices
-    ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━┓
-    ┃ Device Name      ┃ Device ID                                ┃ Type             ┃ Status ┃ RSSI ┃ Details       ┃
-    ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━━┩
-    │ Motion Sensor    │ 802E5542189D74B402DEE926DFE92299228127D3 │ SMART.TAPOSENSOR │ Online │ -45  │ Motion: Clear │
-    │ Contact Sensor 1 │ 802E0F693556D75BA0D9A2D831FB87812358678F │ SMART.TAPOSENSOR │ Online │ -56  │ Contact: Open │
-    └──────────────────┴──────────────────────────────────────────┴──────────────────┴────────┴──────┴───────────────┘
-    ```
-
-The discovery tool:
-
-1. Auto-detects your network subnet
-2. Scans for Tapo devices on your local network
-3. Displays detailed information about discovered devices
-4. Shows connection status for hubs/sensors and power state for plugs/bulbs
-5. Automatically detects Tapo H100 Hubs and:
-    - Connects to each discovered hub using your configured credentials
-    - Fetches all child devices connected to the hub
-    - Displays two detailed tables for child devices (same format as the main application)
-    - Shows real-time status of each child device (motion detection, contact state, etc.)
-6. Provides scan statistics showing total IPs scanned and connection errors
-7. With verbose mode, displays categorized error summary for network troubleshooting
+# Skip fetching child devices from discovered hubs
+tapo-discover --no-children
+```
 
 ## Troubleshooting
 
-### Common Issues
+If you encounter issues:
 
-1. **No Devices Found**
+1. **Connectivity Problems:**
 
-    - Verify your H100 hub is powered on and connected to your network
-    - Confirm you're on the same local network as the hub
-    - Check if the IP address is correct
-    - Ensure your Tapo account has access to the hub
+    - Verify you're on the same network as your Tapo devices
+    - Check if your firewall is blocking connections
+    - Confirm the IP address of your hub is correct
 
-2. **Connection Errors**
+2. **Authentication Issues:**
 
-    - Verify your network connectivity
-    - Check if your firewall is blocking the connection
-    - Confirm the hub's IP address hasn't changed
-    - Try refreshing your Tapo account authentication
+    - Check your Tapo username and password
+    - Verify you're using the email address associated with your Tapo account
 
-3. **Authentication Issues**
-    - Double-check your Tapo username and password
-    - Ensure your Tapo account has permissions for the hub
-    - Try logging out and back in to the Tapo app
-
-### Debug Mode
-
-The application's code contains commented-out sections (primarily in `src/tapo_chatter/main.py`) that can be re-enabled to provide detailed debug output. This includes:
-
--   Raw API responses from the Tapo Hub.
--   Detailed data structures after processing.
--   Connection status messages.
-
-This debug output can be helpful for identifying issues or understanding the data flow if you encounter problems or wish to extend the application.
-
-### Network Scan Error Summary
-
-When running the discovery tool with the `--verbose` flag, you'll see a clean, organized table of error types instead of raw error messages:
-
-```
-Connection Statistics:
-                      Network Scan Results
-┏━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Error Type            ┃ Count ┃ Description                             ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ Timeout               │ 94    │ Normal timeouts from non-responsive IPs │
-│ Connection Refused    │ 5     │ Device refused connection (port closed) │
-│ Network Unreachable   │ 3     │ Network segment unreachable             │
-│ Hash Mismatch         │ 2     │ Security hash mismatch (non-Tapo device)│
-└────────────────────────┴───────┴─────────────────────────────────────────┘
-```
-
-This summary helps you understand network connectivity issues without overwhelming you with technical error messages.
-
-### Passthrough Protocol Test Errors
-
-When discovering hubs and retrieving child devices, you may see messages like:
-
-```
-Passthrough protocol test error: Http(reqwest::Error { kind: Request, url: "http://192.168.107.104/app", source: TimedOut })
-```
-
-These messages are normal and can be safely ignored. They occur when:
-
-1. The Tapo library tests different communication protocols to connect to devices
-2. It tries various IP addresses and communication methods until it finds one that works
-3. Some connection attempts naturally fail during this negotiation process
-
-As long as you see success messages after these errors (like "Successfully connected to..." or "Successfully initialized H100 hub"), the application is working as expected.
-
-### Cursor AI Codebase Understanding (Cursor Rules)
-
-This project utilizes Cursor Rules (`.cursor/rules/*.mdc`) to provide the AI with a better understanding of the codebase structure, key files, and functionalities. These rules help in:
-
--   Faster navigation and context gathering.
--   More accurate code generation and modification.
--   Improved understanding of project-specific conventions.
-
-The rules cover:
-
--   Project Overview
--   Main Module Structure (`src/tapo_chatter/main.py`)
--   Configuration Handling (`src/tapo_chatter/config.py`)
--   Testing Guide (`tests/`)
--   Dependencies and Development (`pyproject.toml`)
--   Device Data Processing (`src/tapo_chatter/`)
--   Linting Guide (`.cursor/rules/linting-guide.mdc`)
--   Formatting Guide (`.cursor/rules/formatting-guide.mdc`)
--   Docstring Guide (`.cursor/rules/docstring-guide.mdc`)
--   Commit Helper (`.cursor/rules/commit-helper.mdc`)
-
-These rules are written in Markdown with Cursor-specific extensions and are automatically used by the Cursor AI when interacting with this project.
-
-## Development
-
-### Project Structure
-
-```
-tapo_chatter/
-├── .cursor/
-│   └── rules/
-│       ├── commit-helper.mdc
-│       ├── configuration-handling.mdc
-│       ├── dependencies-and-development.mdc
-│       ├── device-data-processing.mdc
-│       ├── docstring-guide.mdc
-│       ├── formatting-guide.mdc
-│       ├── linting-guide.mdc
-│       ├── main-module-structure.mdc
-│       ├── project-overview.mdc
-│       └── testing-guide.mdc
-├── src/
-│   └── tapo_chatter/
-│       ├── __init__.py
-│       ├── main.py
-│       ├── config.py
-│       ├── device_discovery.py
-│       └── discover.py
-├── tests/
-│   ├── __init__.py
-│   ├── test_config.py
-│   ├── test_main.py
-│   ├── test_main_entry.py
-│   └── check_coverage.py
-├── .env
-├── pyproject.toml
-└── README.md
-```
-
-### Running Tests
-
-The project has a comprehensive test suite with over 99% code coverage. To run the tests:
-
-```bash
-# Install test dependencies
-uv pip install pytest pytest-asyncio pytest-cov
-
-# Run all tests
-python -m pytest
-
-# Run tests with coverage report
-python tests/check_coverage.py
-
-# Run specific test files
-python -m pytest tests/test_config.py
-python -m pytest tests/test_main.py
-
-# Run a specific test function
-python -m pytest tests/test_main.py::test_check_host_connectivity_success
-
-# Run tests with verbose output
-python -m pytest -v
-```
-
-### Code Style
-
-The project uses ruff for linting and formatting:
-
-```bash
-# Install ruff
-uv pip install ruff
-
-# Check code
-ruff check .
-
-# Format code
-ruff format .
-```
-
-## Testing
-
-### Code Coverage
-
-The project maintains high code coverage (>99%) to ensure reliability and stability. We use pytest and pytest-cov for testing and coverage reporting.
-
-To check the current test coverage:
-
-```bash
-python tests/check_coverage.py
-```
-
-### Test Organization
-
-The test suite is organized into several files:
-
--   `test_config.py`: Tests for the configuration module, including environment variable handling, validation, and error cases.
--   `test_main.py`: Comprehensive tests for the main module, including device discovery, connectivity checks, and output formatting.
--   `test_main_entry.py`: Tests for ensuring the entry point logic works correctly when the module is run directly.
--   Additional helper scripts for testing the main module's entry point behavior.
-
-### Running the Application in Test Mode
-
-You can run the application with mock data for testing purposes:
-
-```bash
-# With environment variables
-TAPO_USERNAME="test@example.com" TAPO_PASSWORD="test_password" TAPO_IP_ADDRESS="127.0.0.1" python -m src.tapo_chatter.main
-
-# Using different methods
-python -m src.tapo_chatter.main  # As a module
-python src/tapo_chatter/main.py  # Directly
-```
+3. **Device Not Showing:**
+    - Ensure the device is powered on and connected to your network
+    - Try rebooting the device
+    - Check if the device is visible in the official Tapo app
 
 ## Contributing
 

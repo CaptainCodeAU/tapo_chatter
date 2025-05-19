@@ -4,11 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tapo_chatter"
-version = "0.1.0"
-description = "A Python application to list and manage Tapo H100 Hub devices and their child devices."
-authors = [
-    { name = "Your Name", email = "your.email@example.com" }, # User should update this
-]
+version = "0.20"
+description = "A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices."
 readme = "README.md"
 requires-python = ">=3.13, <3.14"
 license = { text = "MIT" } # Example license
