@@ -4,7 +4,15 @@ A comprehensive Python application for managing, monitoring, and discovering TP-
 
 ## Features
 
-### Tapo H100 Hub Monitor (`tapo-chatter`)
+### Unified Command Line Interface (v0.3.0+)
+
+Tapo Chatter now provides a unified command line interface with subcommands:
+
+-   🔄 **Single Command:** Access all functionality through the `tapo-chatter` command with different subcommands
+-   📋 **Backward Compatible:** Original `tapo-monitor` and `tapo-discover` commands are still supported
+-   ⚙️ **Customizable:** More configuration options available through command line flags
+
+### Tapo Hub Monitor (`tapo-chatter monitor`)
 
 -   🔍 Discovers and lists all child devices connected to your H100 hub.
 -   📊 Displays device information across two detailed tables:
@@ -33,7 +41,7 @@ A comprehensive Python application for managing, monitoring, and discovering TP-
 -   🔄 **Real-time Monitoring:** Continuously polls the hub at a set interval (default: 10 seconds) and refreshes the device display, allowing you to see live status changes, including devices going offline.
 -   📝 Debugging information available through code modification if deeper inspection is needed.
 
-### Network Device Discovery Tool (`tapo-discover`)
+### Network Device Discovery Tool (`tapo-chatter discover`)
 
 -   🔎 **Auto Network Detection:** Automatically identifies your local network subnet.
 -   ⚡ **Parallel Scanning:** Concurrently probes multiple IP addresses for faster discovery.
@@ -177,56 +185,78 @@ You have a few options to install and use `tapo-chatter`:
 
 ## Usage
 
-### H100 Hub Monitor
+### Unified Command Line Interface (v0.3.0+)
 
-Run the monitor to view connected devices to your H100 hub:
+Starting with version 0.3.0, Tapo Chatter provides a unified command line interface:
 
 ```bash
-tapo-chatter
+# Show help for the unified command
+tapo-chatter --help
+
+# Show version information
+tapo-chatter --version
 ```
 
-The application will:
-
-1. Load your configuration
-2. Check network connectivity to your hub
-3. Initialize connection with the hub
-4. Retrieve and display information about connected devices
-5. Continuously update the display every 10 seconds
-
-**Stopping the Application:**
-Press `Ctrl+C` to stop the real-time monitoring and exit the application.
-
-### Device Discovery Tool
-
-The package includes a powerful tool to discover all Tapo devices on your local network:
+#### Hub Monitor Mode
 
 ```bash
-tapo-discover
+# Monitor a hub using configuration from environment variables
+tapo-chatter monitor
+
+# Monitor a specific hub IP address
+tapo-chatter monitor --ip 192.168.1.100
+
+# Adjust the refresh interval (in seconds)
+tapo-chatter monitor --interval 5
 ```
 
-**Customize discovery options:**
+#### Device Discovery Mode
 
 ```bash
+# Discover devices on your network
+tapo-chatter discover
+
 # Specify subnet to scan
-tapo-discover --subnet 192.168.0
+tapo-chatter discover --subnet 192.168.0
 
 # Limit IP range to scan (last octet)
-tapo-discover --range 50-100
+tapo-chatter discover --range 50-100
 
 # Adjust concurrency and timeout for faster scanning
-tapo-discover --limit 30 --timeout 0.3
+tapo-chatter discover --limit 30 --timeout 0.3
 
 # Stop scanning after finding a specific number of devices
-tapo-discover --num-devices 5
+tapo-chatter discover --num-devices 5
 
 # Output results in JSON format
-tapo-discover --json
+tapo-chatter discover --json
 
 # Enable cleaner error summary report
-tapo-discover --verbose
+tapo-chatter discover --verbose
 
 # Skip fetching child devices from discovered hubs
-tapo-discover --no-children
+tapo-chatter discover --no-children
+```
+
+### Legacy Commands (Backward Compatible)
+
+The original commands are still supported for backward compatibility:
+
+#### H100 Hub Monitor (Legacy)
+
+```bash
+# Run the original monitor command
+tapo-monitor
+```
+
+#### Device Discovery Tool (Legacy)
+
+```bash
+# Run the original discover command
+tapo-discover
+
+# With options
+tapo-discover --subnet 192.168.0 --range 50-100
 ```
 
 ## Troubleshooting

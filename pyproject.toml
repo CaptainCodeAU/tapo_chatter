@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tapo_chatter"
-version = "0.2.0"
+version = "0.3.0"
 description = "A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices."
 readme = "README.md"
 requires-python = ">=3.13, <3.14"
@@ -36,7 +36,11 @@ Homepage = "https://github.com/yourusername/tapo_chatter" # Optional: Update URL
 Repository = "https://github.com/yourusername/tapo_chatter" # Optional: Update URL
 
 [project.scripts]
-tapo-chatter = "tapo_chatter.main:main_cli"
+# Main unified command with subcommands
+tapo-chatter = "tapo_chatter.cli:main_cli"
+
+# Keep original commands for backward compatibility
+tapo-monitor = "tapo_chatter.main:main_cli"
 tapo-discover = "tapo_chatter.discover:discover_cli"
 
 # Use hatch to manage version based on __init__.py

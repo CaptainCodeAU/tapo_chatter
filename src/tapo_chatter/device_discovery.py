@@ -12,7 +12,10 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 from rich.console import Console
 from tapo import ApiClient
 
-console = Console()
+from .utils import console, process_device_data, check_host_connectivity
+
+# console is imported from utils, so remove this duplicate
+# console = Console()
 
 
 def get_local_ip_subnet() -> Optional[str]:
@@ -53,18 +56,8 @@ def get_useful_device_info(device_info: Any) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Dictionary containing useful device information
     """
-    useful_info = {}
-    useful_properties = [
-        'avatar', 'device_on', 'model', 'nickname', 
-        'signal_level', 'ssid', 'device_id', 'device_type',
-        'hw_ver', 'mac', 'region', 'type', 'status'
-    ]
-    
-    for property in dir(device_info):
-        if property in useful_properties:
-            useful_info[property] = getattr(device_info, property)
-    
-    return useful_info
+    # Utilize the common function in utils.py
+    return process_device_data(device_info)
 
 
 async def device_probe(client: ApiClient, ip_address: str, timeout_seconds: float = 1.0) -> Tuple[bool, Optional[Dict[str, Any]]]:
@@ -124,9 +117,9 @@ async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_a
 
 async def discover_devices(client: ApiClient, subnet: Optional[str] = None, 
                          ip_range: Tuple[int, int] = (1, 254), 
-                         limit: int = 20,  # Increased from 10 to 20 for faster scanning
-                         timeout_seconds: float = 0.5,  # Decreased from 1.0 to 0.5 for faster scanning
-                         stop_after: Optional[int] = None  # Stop after finding this many devices
+                         limit: int = 20,
+                         timeout_seconds: float = 0.5,
+                         stop_after: Optional[int] = None
                          ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
     """
     Discover Tapo devices on the network by probing IP addresses.

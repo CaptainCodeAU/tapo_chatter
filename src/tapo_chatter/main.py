@@ -11,24 +11,9 @@ from rich.table import Table
 from tapo import ApiClient
 
 from .config import TapoConfig
+from .utils import check_host_connectivity
 
 console = Console()
-
-
-async def check_host_connectivity(host: str, port: int = 80, timeout: float = 2) -> bool:
-    """Check if the host is reachable on the network."""
-    try:
-        # Create a socket object
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        
-        # Attempt to connect to the host
-        result = sock.connect_ex((host, port))
-        sock.close()
-        
-        return result == 0
-    except socket.error:
-        return False
 
 
 async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]]:
@@ -298,20 +283,21 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
     console.print(table)
 
 
-async def main() -> None:
+async def main(refresh_interval: int = 10, config: Optional[TapoConfig] = None) -> None:
     """Main entry point."""
     try:
-        # Get configuration from environment variables
-        console.print("[yellow]Loading configuration...[/yellow]")
-        config = TapoConfig.from_env()
-        console.print("[green]Configuration loaded successfully[/green]")
+        # Get configuration from environment variables if not provided
+        if config is None:
+            console.print("[yellow]Loading configuration...[/yellow]")
+            config = TapoConfig.from_env()
+            console.print("[green]Configuration loaded successfully[/green]")
         
         # Initialize the API client
         console.print("[yellow]Initializing Tapo API client...[/yellow]")
         client = ApiClient(config.username, config.password)
         console.print("[green]API client initialized[/green]")
         
-        refresh_interval_seconds = 10
+        refresh_interval_seconds = refresh_interval
         console.print(f"[blue]Starting real-time monitoring. Refreshing every {refresh_interval_seconds} seconds. Press Ctrl+C to exit.[/blue]")
         await asyncio.sleep(2) # Brief pause before first clear
 

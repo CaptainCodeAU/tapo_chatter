@@ -10,9 +10,11 @@ from tapo import ApiClient
 
 from .config import TapoConfig
 from .device_discovery import discover_devices
-from .main import get_child_devices  # Import the function to get child devices from a hub
+from .main import get_child_devices, print_device_table as print_child_device_table, print_additional_device_info_table
+from .utils import check_host_connectivity, create_tapo_protocol, console
 
-console = Console()
+# console is imported from utils, so remove this duplicate
+# console = Console()
 
 
 def print_device_table(devices: List[Dict[str, Any]]) -> None:
@@ -94,9 +96,6 @@ async def print_hub_child_devices(hub_devices: List[Dict[str, Any]], client: Api
         client: The Tapo ApiClient instance
         show_details: Whether to show detail tables for each child device
     """
-    from .main import print_device_table as print_child_device_table
-    from .main import print_additional_device_info_table
-    
     for hub in hub_devices:
         ip_address = hub.get('ip_address')
         name = hub.get('device_info', {}).get('nickname', 'Unknown Hub')
@@ -132,12 +131,13 @@ async def print_hub_child_devices(hub_devices: List[Dict[str, Any]], client: Api
 
 async def discover_main(subnet: Optional[str] = None, 
                        ip_range: tuple = (1, 254), 
-                       limit: int = 20,  # Increased default from 10 to 20
-                       timeout: float = 0.5,  # Decreased default from 1.0 to 0.5
-                       stop_after: Optional[int] = None,  # New parameter
+                       limit: int = 20,
+                       timeout: float = 0.5,
+                       stop_after: Optional[int] = None,
                        json_output: bool = False,
                        verbose: bool = False,
-                       show_children: bool = True) -> None:
+                       show_children: bool = True,
+                       custom_config: Optional[TapoConfig] = None) -> None:
     """
     Main discovery function.
     
@@ -150,17 +150,19 @@ async def discover_main(subnet: Optional[str] = None,
         json_output: Whether to output JSON instead of a table
         verbose: Whether to show verbose error output
         show_children: Whether to show child devices for discovered hubs
+        custom_config: Optional pre-configured TapoConfig instance
     """
     try:
         # Get configuration
-        console.print("[yellow]Loading configuration...[/yellow]")
-        config = TapoConfig.from_env()
-        console.print("[green]Configuration loaded successfully[/green]")
+        if custom_config:
+            config = custom_config
+        else:
+            console.print("[yellow]Loading configuration...[/yellow]")
+            config = TapoConfig.from_env()
+            console.print("[green]Configuration loaded successfully[/green]")
         
         # Initialize API client
-        console.print("[yellow]Initializing Tapo API client...[/yellow]")
-        client = ApiClient(config.username, config.password)
-        console.print("[green]API client initialized[/green]")
+        client = await create_tapo_protocol(config.username, config.password)
         
         # Start discovery
         devices, error_stats = await discover_devices(
