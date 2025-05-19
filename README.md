@@ -352,10 +352,10 @@ tapo-chatter --version
 #### Hub Monitor Mode
 
 ```bash
-# Monitor a hub using configuration from environment variables
+# Monitor a hub using TAPO_IP_ADDRESS from environment variables
 tapo-chatter monitor
 
-# Monitor a specific hub IP address
+# Monitor a specific hub IP address (overrides TAPO_IP_ADDRESS)
 tapo-chatter monitor --ip 192.168.1.100
 
 # Adjust the refresh interval (in seconds)
@@ -365,28 +365,31 @@ tapo-chatter monitor --interval 5
 #### Device Discovery Mode
 
 ```bash
-# Discover devices on your network (uses TAPO_IP_RANGE from .env if set)
+# Discover devices on your network
+# - If no options provided, uses TAPO_IP_RANGE from .env if set
+# - If TAPO_IP_RANGE not set, auto-detects subnet and scans 1-254
 tapo-chatter discover
 
-# Specify subnet to scan
-tapo-chatter discover --subnet 192.168.0
+# Specify subnet to scan (overrides subnet from TAPO_IP_RANGE)
+tapo-chatter discover -s 192.168.1
 
-# Specify IP range in various formats
-tapo-chatter discover --range "192.168.1.100-192.168.1.110"  # Range format
-tapo-chatter discover --range "192.168.1.0/24"               # CIDR format
-tapo-chatter discover --range "192.168.1.100"                # Single IP
+# Specify IP range (overrides range from TAPO_IP_RANGE)
+tapo-chatter discover -r 1-10
+
+# Use both subnet and range (completely overrides TAPO_IP_RANGE)
+tapo-chatter discover -s 192.168.1 -r 1-10
 
 # Adjust concurrency and timeout for faster scanning
-tapo-chatter discover --limit 30 --timeout 0.3
+tapo-chatter discover -l 30 -t 0.3
 
 # Stop scanning after finding a specific number of devices
-tapo-chatter discover --num-devices 5
+tapo-chatter discover -n 5
 
 # Output results in JSON format
-tapo-chatter discover --json
+tapo-chatter discover -j
 
 # Enable cleaner error summary report
-tapo-chatter discover --verbose
+tapo-chatter discover -v
 
 # Skip fetching child devices from discovered hubs
 tapo-chatter discover --no-children
