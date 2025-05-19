@@ -2,6 +2,152 @@
 
 A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices, with special focus on the H100 Hub ecosystem and its connected child devices.
 
+## Quick Start
+
+```bash
+# Install the package
+pip install git+https://github.com/CaptainCodeAU/tapo_chatter.git
+
+# Set up your configuration in ~/.config/tapo_chatter/.env
+# Then run:
+tapo-chatter --help
+```
+
+## Project Overview
+
+### System Architecture
+
+The application is built with a modular architecture focusing on:
+
+-   **Core Components**: CLI, Configuration Management, Device Discovery, Hub Monitoring
+-   **Data Processing**: Device Data Processing, Network Scanning, Device Detection
+-   **User Interface**: Command Line Interface, Rich Console Output
+
+```mermaid
+graph TB
+    subgraph CLI["Command Line Interface"]
+        A[User Input] --> B[CLI Parser]
+        B --> C[Command Router]
+    end
+
+    subgraph Core["Core Components"]
+        D[Configuration Manager] --> E[Device Manager]
+        E --> F[Hub Monitor]
+        E --> G[Device Discovery]
+    end
+
+    subgraph Network["Network Layer"]
+        H[Network Scanner] --> I[Device Detector]
+        I --> J[Authentication]
+        J --> K[Device Communication]
+    end
+
+    C --> D
+    F --> K
+    G --> H
+
+    style CLI fill:#f9f,stroke:#333,stroke-width:2px
+    style Core fill:#bbf,stroke:#333,stroke-width:2px
+    style Network fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+### Code Structure
+
+```
+tapo_chatter/
+├── src/
+│   └── tapo_chatter/
+│       ├── __init__.py        # Package initialization
+│       ├── cli.py            # Command-line interface
+│       ├── config.py         # Configuration management
+│       ├── device_discovery.py # Device discovery logic
+│       ├── discover.py       # Network discovery implementation
+│       ├── main.py          # Core application logic
+│       └── utils.py         # Utility functions
+├── docs/
+│   ├── ARCHITECTURE.md      # System architecture details
+│   ├── TECHNICAL_OVERVIEW.md # Technical implementation details
+│   ├── DESIGN.md           # Design decisions and patterns
+│   └── images/             # Architectural and flow diagrams
+├── tests/                  # Test suite
+└── scripts/               # Development and maintenance scripts
+```
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant Config
+    participant Discovery
+    participant Network
+    participant Device
+
+    User->>CLI: Execute Command
+    CLI->>Config: Load Configuration
+    Config-->>CLI: Config Data
+
+    alt Discovery Command
+        CLI->>Discovery: Initialize Discovery
+        Discovery->>Network: Scan Network
+        Network-->>Discovery: Device List
+        Discovery->>Device: Query Each Device
+        Device-->>Discovery: Device Details
+        Discovery-->>CLI: Results
+    else Monitor Command
+        CLI->>Device: Initialize Monitor
+        loop Every N Seconds
+            Device->>Network: Poll Hub
+            Network-->>Device: Hub Data
+            Device->>CLI: Update Display
+        end
+    end
+
+    CLI->>User: Display Results
+```
+
+### Component Interaction
+
+```mermaid
+classDiagram
+    class CLI {
+        +parse_args()
+        +execute_command()
+        +display_results()
+    }
+
+    class ConfigManager {
+        +load_config()
+        +validate_config()
+        +get_credentials()
+    }
+
+    class DeviceDiscovery {
+        +scan_network()
+        +find_devices()
+        +get_device_info()
+    }
+
+    class HubMonitor {
+        +connect()
+        +poll_devices()
+        +update_display()
+    }
+
+    class NetworkScanner {
+        +scan_subnet()
+        +check_device()
+        +authenticate()
+    }
+
+    CLI --> ConfigManager
+    CLI --> DeviceDiscovery
+    CLI --> HubMonitor
+    DeviceDiscovery --> NetworkScanner
+    HubMonitor --> NetworkScanner
+```
+
 ## Features
 
 ### Unified Command Line Interface (v0.3.0+)
@@ -113,22 +259,37 @@ The application can detect and display information for various Tapo devices on y
         - **Linux/macOS:** `~/.config/tapo_chatter/.env`
         - **Windows:** Typically `C:\Users\<YourUser>\AppData\Roaming\tapo_chatter\Config\.env` (The application will create the `tapo_chatter` directory if it doesn\'t exist; you just need to create the `.env` file inside it).
           You can find the exact path for your system if the application fails to find the configuration variables as it will be printed in the error message.
-    3. **Local Project `.env` File:** Create a file named `.env` in your project\'s root directory (or any parent directory from where you run the command if not installed).
+    3. **Local Project `.env` File:** Create a file named `.env` in your project's root directory (or any parent directory from where you run the command if not installed).
 
     **Example `.env` file content:**
 
     ```.env
+    # Required Authentication (always required)
     TAPO_USERNAME="your_tapo_email@example.com"
     TAPO_PASSWORD="your_tapo_password"
-    TAPO_IP_ADDRESS="your_h100_hub_ip_address"
+
+    # Single Device Mode Configuration
+    # Required when using monitor-one or probe-one modes
+    # Example: Your H100 Hub's IP address
+    TAPO_IP_ADDRESS="192.168.1.100"
+
+    # Multi-Device Mode Configuration
+    # Required when using monitor-all or probe-all modes
+    # You can specify IP ranges in several formats:
+    # - Single IP: "192.168.1.100"
+    # - IP range: "192.168.1.100-192.168.1.110"
+    # - CIDR notation: "192.168.1.0/24"
+    # - Comma-separated combination: "192.168.1.100,192.168.1.200-192.168.1.210,192.168.1.0/24"
+    TAPO_IP_RANGE="192.168.1.1-192.168.1.254"
+
+    # Note: You can include both TAPO_IP_ADDRESS and TAPO_IP_RANGE in your .env file
+    # The application will use the appropriate one based on the selected operation mode:
+    # - monitor-one, probe-one: uses TAPO_IP_ADDRESS
+    # - monitor-all, probe-all: uses TAPO_IP_RANGE
     ```
 
     **Note on Configuration for `pipx` users:**
-    After installing with `pipx`, `tapo-chatter` will be available globally. To configure credentials, it is recommended to create a `.env` file in the user-specific configuration directory mentioned in step 3 (Configure Environment Variables) above. For example:
-
-    - **Linux/macOS:** `~/.config/tapo_chatter/.env`
-    - **Windows:** `C:\Users\<YourUser>\AppData\Roaming\tapo_chatter\Config\.env` (or similar path indicated by `platformdirs`)
-      Alternatively, you can set `TAPO_USERNAME`, `TAPO_PASSWORD`, and `TAPO_IP_ADDRESS` as system environment variables in your shell.
+    After installing with `pipx`, `tapo-chatter` will be available globally. To configure credentials, it is recommended to create a `.env` file in the directory from which you run the `tapo-chatter` command (or any parent directory).
 
 **4. Installing the Package:**
 
@@ -141,6 +302,7 @@ You have a few options to install and use `tapo-chatter`:
     ```bash
     # Using pip
     pip install -e .
+
     # Or using uv
     # uv pip install -e .
     ```
@@ -152,34 +314,24 @@ You have a few options to install and use `tapo-chatter`:
     ```bash
     # Using pip
     pip install .
+
     # Or using uv
     # uv pip install .
-    ```
-
--   **Installing from GitHub (for end-users or collaborators):**
-    Once the project is pushed to a public GitHub repository (e.g., `https://github.com/yourusername/tapo_chatter`), others can install it directly using pip:
-    ```bash
-    pip install git+https://github.com/yourusername/tapo_chatter.git
-    ```
-    Replace `yourusername` with the actual GitHub username and `tapo_chatter` with the repository name if it differs.
-    To install a specific version or branch, append `@<tag_name_or_branch_name>` to the URL:
-    ```bash
-    pip install git+https://github.com/yourusername/tapo_chatter.git@v0.1.0
     ```
 
 *   **Installing with `pipx` (Recommended for CLI tools):**
     `pipx` installs Python applications into isolated environments, which is great for CLI tools.
     First, ensure you have `pipx` installed (see [pipx installation guide](https://pypa.github.io/pipx/installation/)).
+
     Then, you can install `tapo-chatter` directly from GitHub:
+
     ```bash
-    pipx install git+https://github.com/yourusername/tapo_chatter.git
+    pipx install git+https://github.com/CaptainCodeAU/tapo_chatter.git
     ```
-    To install a specific version:
-    ```bash
-    pipx install git+https://github.com/yourusername/tapo_chatter.git@v0.1.0
-    ```
+
     **Note on Configuration for `pipx` users:**
     After installing with `pipx`, `tapo-chatter` will be available globally. You'll need to ensure the required environment variables (`TAPO_USERNAME`, `TAPO_PASSWORD`, `TAPO_IP_ADDRESS`) are set. You can do this by:
+
     1.  Creating a `.env` file in the directory from which you run the `tapo-chatter` command (or any parent directory).
     2.  Setting these as system environment variables in your shell (e.g., in your `.bashrc` or `.zshrc`).
 
@@ -213,14 +365,16 @@ tapo-chatter monitor --interval 5
 #### Device Discovery Mode
 
 ```bash
-# Discover devices on your network
+# Discover devices on your network (uses TAPO_IP_RANGE from .env if set)
 tapo-chatter discover
 
 # Specify subnet to scan
 tapo-chatter discover --subnet 192.168.0
 
-# Limit IP range to scan (last octet)
-tapo-chatter discover --range 50-100
+# Specify IP range in various formats
+tapo-chatter discover --range "192.168.1.100-192.168.1.110"  # Range format
+tapo-chatter discover --range "192.168.1.0/24"               # CIDR format
+tapo-chatter discover --range "192.168.1.100"                # Single IP
 
 # Adjust concurrency and timeout for faster scanning
 tapo-chatter discover --limit 30 --timeout 0.3
@@ -245,18 +399,22 @@ The original commands are still supported for backward compatibility:
 #### H100 Hub Monitor (Legacy)
 
 ```bash
-# Run the original monitor command
+# Run the original monitor command (uses TAPO_IP_ADDRESS from .env)
 tapo-monitor
+
+# Monitor a specific IP address
+tapo-monitor --ip 192.168.1.100
 ```
 
 #### Device Discovery Tool (Legacy)
 
 ```bash
-# Run the original discover command
+# Run the original discover command (uses TAPO_IP_RANGE from .env if set)
 tapo-discover
 
-# With options
-tapo-discover --subnet 192.168.0 --range 50-100
+# With options (supports all new IP range formats)
+tapo-discover --subnet 192.168.0 --range "192.168.0.100-192.168.0.110"
+tapo-discover --subnet 192.168.0 --range "192.168.0.0/24"
 ```
 
 ## Troubleshooting
@@ -291,3 +449,93 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 -   Built using the [Tapo Python Library](https://github.com/mihai-dinculescu/tapo)
 -   Thanks to the TP-Link Tapo team for their smart home devices
+
+## Version History
+
+### v0.3.0 (Latest)
+
+-   Added support for flexible IP range configuration via TAPO_IP_RANGE environment variable
+-   Added support for multiple IP range formats (single IP, range, CIDR, comma-separated)
+-   Improved device discovery with configurable IP ranges
+-   Enhanced documentation with detailed configuration examples
+-   Introduced unified command line interface with subcommands
+-   Added backward compatibility for legacy commands
+-   Improved configuration options through command line flags
+-   Enhanced error handling and reporting
+
+### v0.2.0
+
+-   Added support for H100 Hub child device monitoring
+-   Improved device discovery with parallel scanning
+-   Added JSON output option for discovery results
+-   Enhanced error handling with structured summaries
+
+### v0.1.0
+
+-   Initial release
+-   Basic device discovery functionality
+-   Simple hub monitoring capabilities
+
+## Documentation
+
+The project includes comprehensive technical documentation in the `docs/` directory:
+
+### Architecture Documentation (`ARCHITECTURE.md`)
+
+A detailed system architecture document that covers:
+
+-   Core system components and their interactions
+-   Data flow through the system
+-   Key abstractions and dependencies
+-   Security considerations
+-   Error handling strategies
+-   Performance optimizations
+-   Future extensibility plans
+
+### Technical Overview (`TECHNICAL_OVERVIEW.md`)
+
+A comprehensive technical guide covering:
+
+-   Complete technology stack details
+-   Code organization and structure
+-   Implementation details for each component
+-   Data structures and their usage
+-   Error handling mechanisms
+-   Performance optimization strategies
+-   Testing approach
+-   Deployment considerations
+
+### Design Documentation (`DESIGN.md`)
+
+A detailed design document that outlines:
+
+-   Core design philosophy and principles
+-   Design patterns used in the project
+-   Component-level design decisions
+-   Interface design specifications
+-   Data model design
+-   Error handling design
+-   Security design considerations
+-   Performance design strategies
+-   Future design considerations
+
+### Development Workflow
+
+1. **Setup & Configuration**
+
+    - Clone repository
+    - Install dependencies
+    - Configure environment
+
+2. **Development Cycle**
+
+    - Write code
+    - Run tests
+    - Update documentation
+    - Submit changes
+
+3. **Testing & Validation**
+    - Unit tests
+    - Integration tests
+    - Manual testing
+    - Documentation review

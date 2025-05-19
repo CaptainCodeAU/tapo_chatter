@@ -116,7 +116,7 @@ async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_a
 
 
 async def discover_devices(client: ApiClient, subnet: Optional[str] = None, 
-                         ip_range: Tuple[int, int] = (1, 254), 
+                         ip_range: Optional[Tuple[int, int]] = (1, 254), 
                          limit: int = 20,
                          timeout_seconds: float = 0.5,
                          stop_after: Optional[int] = None
@@ -127,7 +127,7 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
     Args:
         client: The Tapo ApiClient instance
         subnet: The subnet to scan (e.g. "192.168.1"), if None will be auto-detected
-        ip_range: Range of IP addresses to scan (last octet)
+        ip_range: Range of IP addresses to scan (last octet), defaults to (1, 254)
         limit: Maximum number of concurrent probes (higher means faster scanning)
         timeout_seconds: Maximum time to wait for each probe (lower means faster scanning)
         stop_after: Stop scanning after finding this many devices (None means scan all IPs)
@@ -142,6 +142,10 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
         if subnet is None:
             console.print("[yellow]Warning: Could not determine local subnet. Falling back to 192.168.1[/yellow]")
             subnet = "192.168.1"
+    
+    # Use default IP range if none provided
+    if ip_range is None:
+        ip_range = (1, 254)
     
     console.print(f"[yellow]Discovering Tapo devices on subnet {subnet}.* (range {ip_range[0]}-{ip_range[1]})[/yellow]")
     console.print(f"[yellow]Using concurrency limit of {limit} with {timeout_seconds}s timeout[/yellow]")
@@ -200,45 +204,30 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                         for t in tasks:
                             if not t.done():
                                 t.cancel()
+                                error_types['cancelled'] += 1
                         break
+                        
             except asyncio.TimeoutError:
-                # Just a timeout, very normal for non-Tapo devices or offline devices
-                completed += 1
+                errors += 1
                 error_types['timeout'] += 1
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
-            except asyncio.CancelledError:
-                # Task was cancelled, don't count as completed
-                error_types['cancelled'] += 1
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
-            except ConnectionResetError:
-                # Connection reset by peer, not a Tapo device
-                completed += 1
+            except ConnectionRefusedError:
                 errors += 1
-                error_types['other'] += 1
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
-            except Exception as e:
-                # Categorize errors without showing raw messages
-                completed += 1
+                error_types['connection_refused'] += 1
+            except OSError as e:
                 errors += 1
-                err_str = str(e)
-                
-                # Categorize common error types
-                if "Connection refused" in err_str:
-                    error_types['connection_refused'] += 1
-                elif "Network is unreachable" in err_str:
+                if e.errno == 113:  # No route to host
                     error_types['network_unreachable'] += 1
-                elif "invalid URL" in err_str:
+                else:
+                    error_types['other'] += 1
+            except Exception as e:
+                errors += 1
+                if 'Invalid URL' in str(e):
                     error_types['invalid_url'] += 1
-                elif "hash does not match" in err_str or "Local hash" in err_str:
+                elif 'hash mismatch' in str(e).lower():
                     error_types['hash_mismatch'] += 1
                 else:
                     error_types['other'] += 1
-                
-                # Keep the status bar updated without showing the actual error
-                status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
     
-    console.print(f"[green]Scan complete: Discovered {len(device_data)} Tapo devices on the network[/green]")
-    console.print(f"[dim]({completed} IPs scanned, {errors} connection errors)[/dim]")
     return device_data, error_types
 
 

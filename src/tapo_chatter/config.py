@@ -1,14 +1,15 @@
 """Configuration module for Tapo Chatter."""
 import os
 import re
-from dataclasses import dataclass
-from typing import Optional, cast
+from dataclasses import dataclass, field
+from typing import Optional, cast, Tuple, List
 from pathlib import Path
 import sys
 
 from dotenv import load_dotenv, dotenv_values, find_dotenv
 import platformdirs
 from rich.console import Console
+import ipaddress
 
 # Load environment variables from .env file if it exists
 # load_dotenv() # This will be handled more specifically now
@@ -17,107 +18,98 @@ console = Console()
 
 
 @dataclass
-class TapoConfig:
-    """Configuration for Tapo device interaction."""
-    username: str
-    password: str
-    ip_address: str
-
-    @staticmethod
-    def is_valid_ip(ip: str) -> bool:
-        """Validate IP address format."""
-        pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-        if not re.match(pattern, ip):
-            return False
-        return all(0 <= int(part) <= 255 for part in ip.split('.'))
-
-    @staticmethod
-    def is_valid_email(email: str) -> bool:
-        """Validate email format."""
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        return bool(re.match(pattern, email))
+class IpRange:
+    """Represents a range of IP addresses."""
+    subnet: str
+    start: int
+    end: int
 
     @classmethod
-    def from_env(cls) -> "TapoConfig":
-        """Create a config instance from environment variables."""
+    def from_string(cls, ip_range: str) -> 'IpRange':
+        """Parse an IP range string into subnet and range components."""
+        if '-' in ip_range:
+            # Handle range format (e.g., "192.168.1.1-192.168.1.254")
+            start_ip, end_ip = ip_range.split('-')
+            start_parts = start_ip.split('.')
+            end_parts = end_ip.split('.')
+            
+            # Ensure both IPs are in the same subnet
+            if start_parts[:3] != end_parts[:3]:
+                raise ValueError("IP range must be within the same subnet")
+            
+            subnet = '.'.join(start_parts[:3])
+            start = int(start_parts[3])
+            end = int(end_parts[3])
+            
+            return cls(subnet=subnet, start=start, end=end)
+        elif '/' in ip_range:
+            # Handle CIDR notation (e.g., "192.168.1.0/24")
+            network = ipaddress.ip_network(ip_range)
+            first_ip = network.network_address
+            subnet = '.'.join(str(first_ip).split('.')[:3])
+            return cls(subnet=subnet, start=1, end=254)  # Standard usable range for /24
+        else:
+            # Handle single IP (e.g., "192.168.1.100")
+            parts = ip_range.split('.')
+            if len(parts) != 4:
+                raise ValueError("Invalid IP address format")
+            subnet = '.'.join(parts[:3])
+            octet = int(parts[3])
+            return cls(subnet=subnet, start=octet, end=octet)
 
-        # Define paths for .env files
-        # User-specific config directory (e.g., ~/.config/tapo_chatter/.env)
-        user_config_dir = Path(platformdirs.user_config_dir("tapo_chatter", appauthor=False))
-        user_config_env_path = user_config_dir / ".env"
 
-        # Ensure user config directory exists for guidance, but don't fail if not writable yet
-        try:
-            user_config_dir.mkdir(parents=True, exist_ok=True)
-        except OSError:
-            # If we can't create it (e.g., permissions), we'll still proceed.
-            # The paths will be used in error messages later.
-            pass 
+@dataclass
+class TapoConfig:
+    """Configuration for Tapo Chatter."""
+    username: str
+    password: str
+    ip_address: Optional[str] = None
+    ip_ranges: List[IpRange] = field(default_factory=list)
 
-        # Local .env path (searches CWD and parents)
-        local_env_path_str = find_dotenv(usecwd=True, raise_error_if_not_found=False)
+    def __post_init__(self):
+        """Initialize default values after dataclass initialization."""
+        if self.ip_ranges is None:
+            self.ip_ranges = []
 
-        # Load configuration with precedence: Shell Env > User-specific .env > Local .env
-        # 1. Start with an empty dictionary for file-based configs
-        file_configs = {}
+    @classmethod
+    def from_env(cls) -> 'TapoConfig':
+        """Load configuration from environment variables."""
+        load_dotenv()
 
-        # 2. Load from local .env file if found
-        if local_env_path_str and Path(local_env_path_str).exists():
-            file_configs.update(dotenv_values(local_env_path_str))
-        
-        # 3. Load from user-specific .env file if found (overrides local .env values)
-        if user_config_env_path.exists():
-            file_configs.update(dotenv_values(user_config_env_path))
+        # Required fields
+        username = os.getenv('TAPO_USERNAME')
+        password = os.getenv('TAPO_PASSWORD')
 
-        # 4. Get final values, prioritizing os.getenv (shell) over file_configs
-        username = os.getenv("TAPO_USERNAME") or file_configs.get("TAPO_USERNAME")
-        password = os.getenv("TAPO_PASSWORD") or file_configs.get("TAPO_PASSWORD")
-        ip_address = os.getenv("TAPO_IP_ADDRESS") or file_configs.get("TAPO_IP_ADDRESS")
+        if not username or not password:
+            raise ValueError(
+                "TAPO_USERNAME and TAPO_PASSWORD environment variables are required"
+            )
 
-        # Check for missing variables
-        missing = []
-        if not username:
-            missing.append("TAPO_USERNAME")
-        if not password:
-            missing.append("TAPO_PASSWORD")
-        if not ip_address:
-            missing.append("TAPO_IP_ADDRESS")
-        
-        if missing:
-            console.print("[red]Configuration Error:[/red]")
-            console.print("Missing required environment variables:")
-            for var in missing:
-                console.print(f"  • {var}")
-            console.print("\nPlease set these variables in your shell environment, or in one of the following .env files:")
-            console.print(f"  1. User-specific global config: [cyan]{user_config_env_path}[/cyan]")
-            if local_env_path_str:
-                console.print(f"  2. Local project config: [cyan]{local_env_path_str}[/cyan]")
-            else:
-                console.print(f"  2. Local project config: .env (in your project directory)")
-            console.print("\nExample .env file content:")
-            console.print("TAPO_USERNAME=\"your_tapo_email@example.com\"")
-            console.print("TAPO_PASSWORD=\"your_tapo_password\"")
-            console.print("TAPO_IP_ADDRESS=\"your_h100_hub_ip_address\"")
-            sys.exit(1)
+        # Optional fields
+        ip_address = os.getenv('TAPO_IP_ADDRESS')
+        ip_range_str = os.getenv('TAPO_IP_RANGE')
 
-        # Validate username format (should be an email)
-        if not cls.is_valid_email(cast(str, username)):
-            console.print("[red]Configuration Error:[/red]")
-            console.print(f"Invalid email format for TAPO_USERNAME: {username}")
-            console.print("The username should be a valid email address")
-            raise ValueError(f"Invalid email format for TAPO_USERNAME: {username}")
+        ip_ranges: List[IpRange] = []
+        if ip_range_str:
+            # Handle comma-separated ranges
+            for range_part in ip_range_str.split(','):
+                range_part = range_part.strip()
+                if range_part:
+                    ip_ranges.append(IpRange.from_string(range_part))
 
-        # Validate IP address format
-        if not cls.is_valid_ip(cast(str, ip_address)):
-            console.print("[red]Configuration Error:[/red]")
-            console.print(f"Invalid IP address format: {ip_address}")
-            console.print("The IP address should be in the format: xxx.xxx.xxx.xxx")
-            console.print("Each number should be between 0 and 255")
-            raise ValueError(f"Invalid IP address format: {ip_address}")
-
-        # At this point we know these values are valid
         return cls(
-            username=cast(str, username),
-            password=cast(str, password),
-            ip_address=cast(str, ip_address)
-        ) 
+            username=username,
+            password=password,
+            ip_address=ip_address,
+            ip_ranges=ip_ranges
+        )
+
+    def get_discovery_params(self) -> Tuple[Optional[str], Tuple[int, int]]:
+        """Get the subnet and IP range for device discovery."""
+        if not self.ip_ranges:
+            # Default fallback
+            return None, (1, 254)
+        
+        # For now, use the first range. In the future, we could scan multiple ranges
+        first_range = self.ip_ranges[0]
+        return first_range.subnet, (first_range.start, first_range.end) 

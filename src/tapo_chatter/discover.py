@@ -130,7 +130,7 @@ async def print_hub_child_devices(hub_devices: List[Dict[str, Any]], client: Api
 
 
 async def discover_main(subnet: Optional[str] = None, 
-                       ip_range: tuple = (1, 254), 
+                       ip_range: Optional[Tuple[int, int]] = (1, 254), 
                        limit: int = 20,
                        timeout: float = 0.5,
                        stop_after: Optional[int] = None,
@@ -143,7 +143,7 @@ async def discover_main(subnet: Optional[str] = None,
     
     Args:
         subnet: Network subnet to scan (e.g. "192.168.1")
-        ip_range: Range of IP addresses to scan (last octet)
+        ip_range: Range of IP addresses to scan (last octet), or None to use config
         limit: Maximum number of concurrent probes (higher = faster scanning)
         timeout: Timeout for each probe in seconds (lower = faster scanning)
         stop_after: Stop scanning after finding this many devices
@@ -163,6 +163,10 @@ async def discover_main(subnet: Optional[str] = None,
         
         # Initialize API client
         client = await create_tapo_protocol(config.username, config.password)
+        
+        # Use configured IP range if available
+        if not subnet and not ip_range:
+            subnet, ip_range = config.get_discovery_params()
         
         # Start discovery
         devices, error_stats = await discover_devices(
@@ -198,44 +202,39 @@ async def discover_main(subnet: Optional[str] = None,
             # Add rows for each error type that has occurrences
             for error_type, count in error_stats.items():
                 if count > 0:
-                    stats_table.add_row(
-                        error_type.replace('_', ' ').title(),
-                        str(count),
-                        descriptions.get(error_type, "Unknown error type")
-                    )
+                    description = descriptions.get(error_type, "Unknown error type")
+                    stats_table.add_row(error_type, str(count), description)
             
             console.print(stats_table)
-            console.print()  # Add empty line after table
+            console.print()  # Add a blank line for readability
         
+        # Output results
         if json_output:
-            # Output in JSON format
-            console.print(json.dumps(devices, indent=2))
+            # Convert devices to JSON
+            output = {
+                'devices': devices,
+                'error_stats': error_stats
+            }
+            print(json.dumps(output, indent=2))
         else:
-            # Output as a table
-            print_device_table(devices)
-            
-            # Find all hubs in the discovered devices
-            if show_children:
-                hub_devices = []
-                for device in devices:
-                    device_type = device.get('device_info', {}).get('type', 
-                                   device.get('device_info', {}).get('device_type', '')).upper()
-                    if 'HUB' in device_type:
-                        hub_devices.append(device)
+            # Print formatted table
+            if devices:
+                print_device_table(devices)
                 
-                # Print child devices for each hub
-                if hub_devices:
-                    console.print("\n[bold blue]Found Tapo Hubs - Showing Connected Child Devices[/bold blue]")
+                # Filter hub devices
+                hub_devices = [
+                    device for device in devices 
+                    if 'HUB' in device.get('device_info', {}).get('type', '').upper()
+                ]
+                
+                # Print child devices for each hub if requested
+                if show_children and hub_devices:
                     await print_hub_child_devices(hub_devices, client)
-            
-    except KeyboardInterrupt:
-        console.print("\n[bold yellow]Discovery stopped by user[/bold yellow]")
+            else:
+                console.print("[yellow]No devices found[/yellow]")
+                
     except Exception as e:
-        error_msg = str(e)
-        if verbose:
-            import traceback
-            error_msg += f"\n{traceback.format_exc()}"
-        console.print(f"[bold red]Error during discovery: {error_msg}[/bold red]")
+        console.print(f"[red]Error during device discovery: {str(e)}[/red]")
 
 
 def discover_cli():
@@ -243,7 +242,7 @@ def discover_cli():
     parser = argparse.ArgumentParser(description="Discover Tapo devices on your network")
     parser.add_argument("-s", "--subnet", type=str, default=None, 
                       help="Network subnet to scan (e.g. 192.168.1)")
-    parser.add_argument("-r", "--range", type=str, default="1-254",
+    parser.add_argument("-r", "--range", type=str, default=None,
                       help="Range of IP addresses to scan, format: start-end (e.g. 1-254)")
     parser.add_argument("-l", "--limit", type=int, default=20,
                       help="Maximum number of concurrent network probes (default: 20)")
@@ -260,13 +259,15 @@ def discover_cli():
     
     args = parser.parse_args()
     
-    # Parse the IP range
-    try:
-        start, end = map(int, args.range.split('-'))
-        ip_range = (start, end)
-    except ValueError:
-        console.print(f"[bold red]Invalid IP range format: {args.range}. Should be start-end (e.g. 1-254)[/bold red]")
-        return
+    # Parse the IP range if provided via command line
+    ip_range = None
+    if args.range:
+        try:
+            start, end = map(int, args.range.split('-'))
+            ip_range = (start, end)
+        except ValueError:
+            console.print(f"[bold red]Invalid IP range format: {args.range}. Should be start-end (e.g. 1-254)[/bold red]")
+            return
     
     try:
         asyncio.run(discover_main(
