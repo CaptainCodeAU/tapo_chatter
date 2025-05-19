@@ -187,6 +187,9 @@ Tapo Chatter now provides a unified command line interface with subcommands:
 -   🔄 **Real-time Monitoring:** Continuously polls the hub at a set interval (default: 10 seconds) and refreshes the device display, allowing you to see live status changes, including devices going offline.
 -   📝 Debugging information available through code modification if deeper inspection is needed.
 
+![Monitor Output Example](docs/images/monitor_output_example.png)
+_Monitor output example_
+
 ### Network Device Discovery Tool (`tapo-chatter discover`)
 
 -   🔎 **Auto Network Detection:** Automatically identifies your local network subnet.
@@ -207,6 +210,9 @@ Tapo Chatter now provides a unified command line interface with subcommands:
 -   📊 **JSON Output Option:** Export discovery results in JSON format for further processing.
 -   🔍 **Improved Error Handling:** Verbose mode now provides a structured summary of connection errors by type instead of raw error messages.
 -   📝 **Scan Statistics:** Shows comprehensive scan information including IPs scanned and error count.
+
+![Discovery Output Example](docs/images/discover_output_example.png)
+_Discovery output example_
 
 ## Supported Devices
 
@@ -236,7 +242,7 @@ The application can detect and display information for various Tapo devices on y
 1. **Clone the Repository:**
 
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/CaptainCodeAU/tapo_chatter.git
     cd tapo_chatter
     ```
 
