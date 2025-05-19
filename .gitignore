@@ -23,8 +23,9 @@ wheels/
 .idea/
 
 # Other
-.DS_Store
+**/.DS_Store
 .coverage
+scripts/
 logs/
 logs
 *.log
