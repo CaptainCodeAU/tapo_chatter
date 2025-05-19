@@ -34,7 +34,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     discover_parser = subparsers.add_parser("discover", help="Discover Tapo devices on your network")
     discover_parser.add_argument("-s", "--subnet", type=str, default=None, 
                                help="Network subnet to scan (e.g. 192.168.1)")
-    discover_parser.add_argument("-r", "--range", type=str, default="1-254",
+    discover_parser.add_argument("-r", "--range", type=str, default=None,
                                help="Range of IP addresses to scan, format: start-end (e.g. 1-254)")
     discover_parser.add_argument("-l", "--limit", type=int, default=20,
                                help="Maximum number of concurrent network probes (default: 20)")
@@ -69,17 +69,33 @@ async def monitor_mode(args: argparse.Namespace) -> None:
 
 async def discover_mode(args: argparse.Namespace) -> None:
     """Run the discover mode (original tapo-discover functionality)."""
-    # Parse the IP range
-    try:
-        start, end = map(int, args.range.split('-'))
-        ip_range = (start, end)
-    except ValueError:
-        console.print(f"[bold red]Invalid IP range format: {args.range}. Should be start-end (e.g. 1-254)[/bold red]")
-        sys.exit(1)
+    # Get configuration first
+    config = TapoConfig.from_env()
+    
+    # Only parse the IP range if explicitly provided
+    subnet = args.subnet
+    ip_range = None
+    
+    if args.range:
+        try:
+            start, end = map(int, args.range.split('-'))
+            ip_range = (start, end)
+        except ValueError:
+            console.print(f"[bold red]Invalid IP range format: {args.range}. Should be start-end (e.g. 1-254)[/bold red]")
+            sys.exit(1)
+    elif not subnet:  # Only use config if no explicit subnet provided
+        # Use configuration if no explicit range provided
+        subnet, ip_range = config.get_discovery_params()
+    
+    # Show debug info for what we're actually using
+    if subnet:
+        console.print(f"[yellow]Debug: Using subnet: {subnet}[/yellow]")
+    if ip_range:
+        console.print(f"[yellow]Debug: Using IP range: {ip_range[0]}-{ip_range[1]}[/yellow]")
     
     # Run discovery with the specified parameters
     await discover_main(
-        subnet=args.subnet,
+        subnet=subnet,
         ip_range=ip_range,
         limit=args.limit,
         timeout=args.timeout,

@@ -13,6 +13,7 @@ from rich.console import Console
 from tapo import ApiClient
 
 from .utils import console, process_device_data, check_host_connectivity
+from .config import TapoConfig
 
 # console is imported from utils, so remove this duplicate
 # console = Console()
@@ -138,10 +139,16 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
             - Dictionary with error statistics by type
     """
     if subnet is None:
-        subnet = get_local_ip_subnet()
-        if subnet is None:
-            console.print("[yellow]Warning: Could not determine local subnet. Falling back to 192.168.1[/yellow]")
-            subnet = "192.168.1"
+        # Try to get subnet from configuration first
+        config = TapoConfig.from_env()
+        if config.ip_ranges:
+            subnet = config.ip_ranges[0].subnet
+        else:
+            # Fall back to auto-detection if no configured range
+            subnet = get_local_ip_subnet()
+            if subnet is None:
+                console.print("[yellow]Warning: Could not determine local subnet. Falling back to 192.168.1[/yellow]")
+                subnet = "192.168.1"
     
     # Use default IP range if none provided
     if ip_range is None:
