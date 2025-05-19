@@ -1,6 +1,6 @@
 """Tapo Chatter - A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices."""
 
-__version__ = "0.20"
+__version__ = "0.2.0"
 
 import asyncio
 from .config import TapoConfig

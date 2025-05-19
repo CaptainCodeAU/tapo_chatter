@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tapo_chatter"
-version = "0.20"
+version = "0.2.0"
 description = "A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices."
 readme = "README.md"
 requires-python = ">=3.13, <3.14"
