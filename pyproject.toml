@@ -8,11 +8,11 @@ version = "0.3.0"
 description = "A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices."
 readme = "README.md"
 requires-python = ">=3.13, <3.14"
-license = { text = "MIT" } # Example license
+license = { text = "Apache-2.0" } # Example license
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
 dependencies = [

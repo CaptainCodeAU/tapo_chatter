@@ -3,7 +3,7 @@
 **A comprehensive Python application for managing, monitoring, and discovering TP-Link Tapo smart home devices, with a special focus on the H100 Hub ecosystem and its connected child devices.**
 
 [![PyPI version](https://img.shields.io/pypi/v/tapo-chatter.svg?style=flat-square)](https://pypi.org/project/tapo-chatter/) <!-- Placeholder: Add actual PyPI badge if/when published -->
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## Overview
 
@@ -481,7 +481,7 @@ Please feel free to open an issue first to discuss any significant changes.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. (Assuming you have a LICENSE file, if not, you should add one with the MIT license text).
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
