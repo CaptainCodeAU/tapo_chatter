@@ -1,15 +1,11 @@
 """Configuration module for Tapo Chatter."""
-import os
-import re
-from dataclasses import dataclass, field
-from typing import Optional, cast, Tuple, List
-from pathlib import Path
-import sys
-
-from dotenv import load_dotenv, dotenv_values, find_dotenv
-import platformdirs
-from rich.console import Console
 import ipaddress
+import os
+from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
+
+from dotenv import load_dotenv
+from rich.console import Console
 
 # Load environment variables from .env file if it exists
 # load_dotenv() # This will be handled more specifically now
@@ -32,15 +28,15 @@ class IpRange:
             start_ip, end_ip = ip_range.split('-')
             start_parts = start_ip.split('.')
             end_parts = end_ip.split('.')
-            
+
             # Ensure both IPs are in the same subnet
             if start_parts[:3] != end_parts[:3]:
                 raise ValueError("IP range must be within the same subnet")
-            
+
             subnet = '.'.join(start_parts[:3])
             start = int(start_parts[3])
             end = int(end_parts[3])
-            
+
             return cls(subnet=subnet, start=start, end=end)
         elif '/' in ip_range:
             # Handle CIDR notation (e.g., "192.168.1.0/24")
@@ -109,7 +105,7 @@ class TapoConfig:
         if not self.ip_ranges:
             # Default fallback
             return None, (1, 254)
-        
+
         # For now, use the first range. In the future, we could scan multiple ranges
         first_range = self.ip_ranges[0]
-        return first_range.subnet, (first_range.start, first_range.end) 
+        return first_range.subnet, (first_range.start, first_range.end)

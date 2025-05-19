@@ -1,18 +1,18 @@
 """Tests for the main module and core functionality."""
 
-import pytest
-from tapo_chatter.main import main, check_host_connectivity, get_child_devices
-import asyncio
-from unittest import mock
-import socket
-from tapo import ApiClient
 import datetime
-from typing import Any, Dict
 import os
-import sys
-import importlib.util
-import importlib.machinery
+import socket
 import subprocess
+import sys
+from typing import Any, Dict
+from unittest import mock
+
+import pytest
+from tapo import ApiClient
+
+from tapo_chatter.main import check_host_connectivity, get_child_devices, main
+
 
 def test_version():
     """Test that the version is properly exposed from the package."""
@@ -26,20 +26,20 @@ async def test_main_output(capsys: pytest.CaptureFixture[str]) -> None:
     """Test the output of the main function when no devices are found."""
     # Mock TapoConfig.from_env to return a dummy config
     mock_tapo_config_instance = mock.Mock(username="test@example.com", password="testpassword", ip_address="127.0.0.1")
-    
+
     with mock.patch("tapo_chatter.main.TapoConfig.from_env", return_value=mock_tapo_config_instance) as mock_config_loader:
         with mock.patch("tapo_chatter.main.get_child_devices", return_value=[]) as mock_device_fetcher:
             await main()
             captured = capsys.readouterr()
-            
+
             mock_config_loader.assert_called_once()
-            # We expect get_child_devices to be called. 
+            # We expect get_child_devices to be called.
             # The ApiClient is instantiated inside main() before calling get_child_devices.
             # We check it was called with an ApiClient instance and the IP from the mocked config.
             mock_device_fetcher.assert_called_once_with(mock.ANY, mock_tapo_config_instance.ip_address)
 
             # Rich console might not include the style tags in raw capsys output
-            assert "No devices found" in captured.out 
+            assert "No devices found" in captured.out
             assert captured.err == ""
 
 @pytest.mark.asyncio
@@ -112,10 +112,10 @@ async def test_get_child_devices_connectivity_failure(capsys: pytest.CaptureFixt
 
     with mock.patch("tapo_chatter.main.check_host_connectivity", return_value=False) as mock_check_conn:
         devices = await get_child_devices(mock_client, host_ip)
-        
+
         mock_check_conn.assert_called_once_with(host_ip)
         assert devices == []
-        
+
         captured = capsys.readouterr()
         # Check that key portions of the message are in the output
         # ANSI color codes will be in the actual output with Rich
@@ -188,7 +188,7 @@ async def test_get_child_devices_success_and_processing(capsys: pytest.CaptureFi
     mock_device_obj_3.device_type = "T300"
     mock_device_obj_3.status = 0 # Offline
     mock_device_obj_3.to_dict.side_effect = Exception("Simulated to_dict error")
-    
+
     # Device with no type attributes
     mock_device_obj_4 = mock.Mock()
     mock_device_obj_4.nickname = "Unknown Type Device"
@@ -367,7 +367,7 @@ def test_print_additional_device_info_table_jamming_rssi(
 ):
     """Test print_additional_device_info_table for Jamming RSSI formatting."""
     from tapo_chatter.main import print_additional_device_info_table
-    
+
     devices = [
         {
             "nickname": "Test Device",
@@ -415,8 +415,8 @@ def test_print_device_table_rssi_formatting(capsys: pytest.CaptureFixture[str], 
     }]
     print_device_table(devices)
     captured = capsys.readouterr()
-    
-    # Only check for presence of device name - we can't reliably test the RSSI 
+
+    # Only check for presence of device name - we can't reliably test the RSSI
     # formatting due to Rich console rendering complexities
     assert "RSSI Device" in captured.out
 
@@ -436,19 +436,19 @@ def test_print_device_table_rssi_formatting(capsys: pytest.CaptureFixture[str], 
 def test_print_device_table_details_formatting(capsys: pytest.CaptureFixture[str], device_type: str, params: Dict[str, Any], expected_details: str):
     """Test print_device_table for sensor details formatting."""
     from tapo_chatter.main import print_device_table
-    
+
     # Skip test if it's for Unknown device type with "No specific sensor info"
     # This is a special case that might be handled differently by Rich
     if device_type == "Unknown" and expected_details == "No specific sensor info":
         return  # Skip this test case
-    
+
     devices = [{
         "nickname": "Details Device", "device_id": "detail01", "device_type": device_type,
         "status": 1, "rssi": -60, "params": params
     }]
     print_device_table(devices)
     captured = capsys.readouterr()
-    
+
     # Check for the content without rich formatting tags
     # Rich formatting is not included in the captured output
     assert "Details Device" in captured.out
@@ -459,14 +459,14 @@ def test_print_device_table_details_formatting(capsys: pytest.CaptureFixture[str
 def test_print_additional_device_info_table_mock():
     """Test print_additional_device_info_table with mocked Rich Table."""
     from tapo_chatter.main import print_additional_device_info_table
-    
+
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
          mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         # Configure the table mock
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-        
+
         # Create test devices
         devices = [
             {"nickname": "Device 1", "params": {
@@ -476,26 +476,26 @@ def test_print_additional_device_info_table_mock():
             }},
             {"nickname": "Device 2", "params": {}},  # Empty params
         ]
-        
+
         # Call the function
         print_additional_device_info_table(devices)
-        
+
         # Check that the table was created with the right title
         mock_table.assert_called_once()
         assert mock_table.call_args[1]['title'] == "Additional Device Information"
-        
+
         # Check that add_column was called for each expected column
         expected_columns = [
-            "Device Name", "HW Ver", "MAC", "Region", "Signal Lvl", 
+            "Device Name", "HW Ver", "MAC", "Region", "Signal Lvl",
             "Battery", "Jamming RSSI", "Report Int (s)", "Last Onboarded"
         ]
         assert mock_table_instance.add_column.call_count == len(expected_columns)
         for i, col in enumerate(expected_columns):
             assert mock_table_instance.add_column.call_args_list[i][0][0] == col
-        
+
         # Check that add_row was called for each device
         assert mock_table_instance.add_row.call_count == len(devices)
-        
+
         # Check that the console printed the table - use at_least_once since it may be called twice
         # (once for the table, once for the blank line)
         assert mock_console.print.call_count >= 1
@@ -530,16 +530,16 @@ def test_print_additional_device_info_table_empty_with_mock():
 def test_print_additional_device_info_table_variants(mock_devices):
     """Test print_additional_device_info_table with various device configurations."""
     from tapo_chatter.main import print_additional_device_info_table
-    
+
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
         mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-        
+
         # Call with the mock devices
         print_additional_device_info_table(mock_devices)
-        
+
         # Verify table was created and printed
         mock_table.assert_called_once()
         assert mock_table_instance.add_row.call_count == len(mock_devices)
@@ -549,14 +549,14 @@ def test_print_additional_device_info_table_variants(mock_devices):
 def test_print_additional_info_table_with_malformed_data():
     """Test print_additional_device_info_table with malformed device data."""
     from tapo_chatter.main import print_additional_device_info_table
-    
+
     # Use mock to prevent actual rendering
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
         mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-        
+
         # Create a safer version of the function to test
         def safe_print_additional_device_info_table(devices):
             try:
@@ -579,7 +579,7 @@ def test_print_additional_info_table_with_malformed_data():
             except Exception:
                 # Just testing that we don't crash on bad data
                 pass
-        
+
         # Test various problematic inputs
         safe_print_additional_device_info_table([
             {"nickname": "No Params Device"},
@@ -588,7 +588,7 @@ def test_print_additional_info_table_with_malformed_data():
             {},
             "Not a device dict"
         ])
-        
+
         # Also test with None
         safe_print_additional_device_info_table(None)
 
@@ -597,7 +597,7 @@ async def test_get_child_devices_async_mock_fix():
     """Test get_child_devices with async mock."""
     mock_client = mock.AsyncMock(spec=ApiClient)
     host_ip = "192.168.1.11"
-    
+
     # Create test device
     mock_device = mock.MagicMock()
     mock_device.nickname = "Test Device"
@@ -605,17 +605,17 @@ async def test_get_child_devices_async_mock_fix():
     mock_device.device_type = "T100"
     mock_device.status = 1
     mock_device.to_dict.return_value = {"nickname": "Test Device", "rssi": -65}
-    
+
     # We need to use AsyncMock for both the client and hub
     mock_hub = mock.AsyncMock()
     # Use AsyncMock for h100 to make it awaitable
     mock_client.h100 = mock.AsyncMock(return_value=mock_hub)
     # Use AsyncMock for get_child_device_list
     mock_hub.get_child_device_list = mock.AsyncMock(return_value=[mock_device])
-    
+
     with mock.patch("tapo_chatter.main.check_host_connectivity", return_value=True):
         devices = await get_child_devices(mock_client, host_ip)
-        
+
         # Verify basic device properties
         assert len(devices) == 1
         assert devices[0]["nickname"] == "Test Device"
@@ -628,18 +628,18 @@ async def test_get_child_devices_async_mock_fix():
 async def test_main_config_load_error(capsys: pytest.CaptureFixture[str]):
     """Test main function when TapoConfig.from_env() raises ValueError."""
     config_error_message = "Simulated TapoConfig Error"
-    
+
     with mock.patch("tapo_chatter.main.TapoConfig.from_env", side_effect=ValueError(config_error_message)) as mock_config_load:
         with pytest.raises(ValueError) as exc_info:
             await main()
-    
+
     mock_config_load.assert_called_once()
     assert str(exc_info.value) == config_error_message
-    
+
     captured = capsys.readouterr()
     # main.py catches errors and prints its own "Fatal Error" panel.
     assert "Fatal Error" in captured.out  # Title of main.py's error panel
-    assert config_error_message in captured.out  # Message should be included 
+    assert config_error_message in captured.out  # Message should be included
     assert "Loading configuration" in captured.out  # First step message
 
 @pytest.mark.asyncio
@@ -655,14 +655,14 @@ async def test_main_apiclient_init_error(capsys: pytest.CaptureFixture[str]):
             # Expect the specific exception to be raised by main()
             with pytest.raises(Exception) as exc_info:
                 await main()
-    
+
     # Assert that the config setup was called
     mock_config_setup.assert_called_once()
     # Assert that ApiClient constructor was called with correct credentials
     mock_api_client_constructor.assert_called_once_with(mock_config_instance.username, mock_config_instance.password)
     # Assert that the correct exception was raised
     assert str(exc_info.value) == error_message
-    
+
     # Assert that the error message was printed to console by main's error handler
     captured = capsys.readouterr()
     assert "Fatal Error" in captured.out  # Check for the title of the error panel
@@ -671,14 +671,14 @@ async def test_main_apiclient_init_error(capsys: pytest.CaptureFixture[str]):
 def test_print_additional_device_info_table_multiple_devices():
     """Test print_additional_device_info_table with multiple devices with different param combinations."""
     from tapo_chatter.main import print_additional_device_info_table
-    
+
     # Use mocks to avoid issues with Rich formatting
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
          mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-    
+
         devices = [
             # Device with all parameters present and valid
             {
@@ -737,37 +737,37 @@ def test_print_additional_device_info_table_multiple_devices():
                 }
             }
         ]
-    
+
         print_additional_device_info_table(devices)
-        
+
         # Verify a table was created with the right title
         mock_table.assert_called_once()
         assert mock_table.call_args[1]['title'] == "Additional Device Information"
-        
+
         # Verify 4 rows were added (one for each device)
         assert mock_table_instance.add_row.call_count == 4
-        
+
         # Verify device names appear in add_row calls
         device_names = [call[0][0] for call in mock_table_instance.add_row.call_args_list]
         assert "Complete Device" in device_names
         assert "Partial Device" in device_names
         assert "Minimal Device" in device_names
         assert "Unusual Device" in device_names
-        
+
         # Verify the table was printed
         mock_console.print.assert_any_call(mock_table_instance)
 
 def test_print_device_table_with_temperature_humidity_full_coverage():
     """Test print_device_table with complete coverage of temperature and humidity display."""
     from tapo_chatter.main import print_device_table
-    
+
     # Mock Rich components
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
          mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-        
+
         # Test devices with different sensor values
         devices = [
             # Temperature sensor
@@ -789,25 +789,25 @@ def test_print_device_table_with_temperature_humidity_full_coverage():
                 "params": {"humidity": "45"} # Only humidity, no temp
             }
         ]
-        
+
         print_device_table(devices)
-        
+
         # Verify rows were added for each device
         assert mock_table_instance.add_row.call_count == 2
-        
+
         # Verify the table was printed
         mock_console.print.assert_called_once_with(mock_table_instance)
 
 def test_print_device_table_with_undefined_device_type():
     """Test print_device_table with undefined device_type."""
     from tapo_chatter.main import print_device_table
-    
+
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
          mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-        
+
         # Device with no recognizable type
         device = {
             "nickname": "Unknown Device",
@@ -817,28 +817,28 @@ def test_print_device_table_with_undefined_device_type():
             "rssi": -65,
             "params": {}
         }
-        
+
         print_device_table([device])
-        
+
         # Verify a row was added
         assert mock_table_instance.add_row.call_count == 1
-        
+
         # Get the arguments for the add_row call
         args = mock_table_instance.add_row.call_args[0]
-        
+
         # Verify the details field contains the default message
         assert "No specific sensor info" in str(args)
 
 def test_print_additional_device_info_table_all_types():
     """Test print_additional_device_info_table with all possible jamming RSSI values."""
     from tapo_chatter.main import print_additional_device_info_table
-    
+
     with mock.patch("tapo_chatter.main.Table") as mock_table, \
          mock.patch("tapo_chatter.main.console") as mock_console:
-        
+
         mock_table_instance = mock.Mock()
         mock_table.return_value = mock_table_instance
-        
+
         # Create devices with all possible jamming RSSI conditions
         devices = [
             {
@@ -862,7 +862,7 @@ def test_print_additional_device_info_table_all_types():
             {
                 "nickname": "RSSI Dict",
                 "params": {
-                    "hw_ver": "1.0", "mac": "AA:BB:CC", "region": "EU", 
+                    "hw_ver": "1.0", "mac": "AA:BB:CC", "region": "EU",
                     "signal_level": "4", "battery_state": "OK",
                     "jamming_rssi": {"complex": "object"}, # Dictionary
                     "report_interval": "60", "last_onboarded": "2023-01-01"
@@ -878,16 +878,16 @@ def test_print_additional_device_info_table_all_types():
                 }
             }
         ]
-        
+
         print_additional_device_info_table(devices)
-        
+
         # Verify table was created with correct title
         mock_table.assert_called_once()
         assert mock_table.call_args[1]['title'] == "Additional Device Information"
-        
+
         # Verify rows were added for each device
         assert mock_table_instance.add_row.call_count == len(devices)
-        
+
         # Verify the table was printed
         mock_console.print.assert_any_call(mock_table_instance)
 
@@ -895,22 +895,22 @@ def test_print_additional_device_info_table_all_types():
 async def test_get_child_devices_with_status_name_and_value():
     """Test get_child_devices with various status formats to cover status_name and status_value handling."""
     from tapo_chatter.main import get_child_devices
-    
+
     # Create a custom Status enum-like mock for status.name and status.value testing
     class MockEnum:
         def __init__(self, name, value):
             self.name = name
             self.value = value
-        
+
         def __str__(self):
             return f"Status.{self.name}"
 
     # Create a mock for the ApiClient
     mock_client = mock.AsyncMock()
     host_ip = "192.168.1.50"
-    
+
     # Create test devices with different status formats to test the specific code paths
-    
+
     # Device with status.name containing 'online'
     mock_device_status_name = mock.Mock()
     mock_device_status_name.nickname = "Status Name Device"
@@ -918,7 +918,7 @@ async def test_get_child_devices_with_status_name_and_value():
     mock_device_status_name.device_type = "T100"
     mock_device_status_name.status = MockEnum("Online", 0)  # name contains 'online', but value is 0
     mock_device_status_name.to_dict = mock.Mock(return_value={"nickname": "Status Name Device", "rssi": -65})
-    
+
     # Device with status.value == 1
     mock_device_status_value = mock.Mock()
     mock_device_status_value.nickname = "Status Value Device"
@@ -926,7 +926,7 @@ async def test_get_child_devices_with_status_name_and_value():
     mock_device_status_value.device_type = "T100"
     mock_device_status_value.status = MockEnum("Disconnected", 1)  # name doesn't contain 'online', but value is 1
     mock_device_status_value.to_dict = mock.Mock(return_value={"nickname": "Status Value Device", "rssi": -70})
-    
+
     # Set up mock Hub and its methods
     mock_hub = mock.AsyncMock()
     mock_hub.get_child_device_list = mock.AsyncMock()
@@ -934,34 +934,31 @@ async def test_get_child_devices_with_status_name_and_value():
         mock_device_status_name, mock_device_status_value
     ]
     mock_client.h100.return_value = mock_hub
-    
+
     # Mock connectivity check
     with mock.patch("tapo_chatter.main.check_host_connectivity", return_value=True) as mock_check_conn:
         devices = await get_child_devices(mock_client, host_ip)
-        
+
         # Verify both devices are processed
         assert len(devices) == 2
-        
+
         # Verify first device (status.name contains 'online')
         status_name_device = next(d for d in devices if d["nickname"] == "Status Name Device")
         assert status_name_device["status"] == 1  # Should be online because status.name is 'Online'
-        
+
         # Verify second device (status.value == 1)
         status_value_device = next(d for d in devices if d["nickname"] == "Status Value Device")
         assert status_value_device["status"] == 1  # Should be online because status.value is 1
 
 def test_main_module_execution():
     """Test the 'if __name__ == "__main__"' block in main.py."""
-    import subprocess
-    import sys
-    import os
-    
+
     # Get path to the run_main_module.py helper script
     script_path = os.path.join(os.path.dirname(__file__), "run_main_module.py")
-    
+
     # Make sure the script is executable
     os.chmod(script_path, 0o755)
-    
+
     # Run the script to test the __main__ block directly
     result = subprocess.run(
         [sys.executable, script_path],
@@ -969,22 +966,19 @@ def test_main_module_execution():
         text=True,
         check=True
     )
-    
+
     # Check that the script executed successfully
     assert "Coverage of __main__ block executed successfully" in result.stdout
 
 def test_main_module_direct_execution():
     """Test the execution of the main module when run directly."""
-    import subprocess
-    import sys
-    import os
-    
+
     # Path to our helper script
     script_path = os.path.join(os.path.dirname(__file__), "run_main_directly.py")
-    
+
     # Ensure it's executable
     os.chmod(script_path, 0o755)
-    
+
     # Run the script to test main.py's __main__ block
     result = subprocess.run(
         [sys.executable, script_path],
@@ -992,7 +986,7 @@ def test_main_module_direct_execution():
         text=True,
         check=True
     )
-    
+
     # Verify script ran successfully
     assert "Successfully executed main.py with __name__ = '__main__'" in result.stdout
 

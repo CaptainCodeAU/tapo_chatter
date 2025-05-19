@@ -1,13 +1,13 @@
 """Unified CLI interface for Tapo Chatter."""
-import asyncio
 import argparse
+import asyncio
 import sys
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional
 
 from .config import TapoConfig
-from .utils import console, setup_console
-from .main import main as monitor_main
 from .discover import discover_main
+from .main import main as monitor_main
+from .utils import console, setup_console
 
 
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
@@ -17,22 +17,22 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         description="Tapo Chatter - Manage, monitor, and discover TP-Link Tapo smart home devices",
         epilog="Use 'tapo-chatter <mode> --help' for more information on a specific mode"
     )
-    
+
     # Add global arguments applicable to all modes
     parser.add_argument("--version", action="store_true", help="Show version information and exit")
-    
+
     # Create subparsers for different modes
     subparsers = parser.add_subparsers(dest="mode", help="Operation mode")
-    
+
     # MONITOR mode (original tapo-chatter functionality)
     monitor_parser = subparsers.add_parser("monitor", help="Monitor a Tapo hub and its devices continuously")
     monitor_parser.add_argument("--ip", type=str, help="IP address of the Tapo hub to monitor (overrides TAPO_IP_ADDRESS)")
-    monitor_parser.add_argument("--interval", type=int, default=10, 
+    monitor_parser.add_argument("--interval", type=int, default=10,
                               help="Refresh interval in seconds (default: 10)")
-    
+
     # DISCOVER mode (original tapo-discover functionality)
     discover_parser = subparsers.add_parser("discover", help="Discover Tapo devices on your network")
-    discover_parser.add_argument("-s", "--subnet", type=str, default=None, 
+    discover_parser.add_argument("-s", "--subnet", type=str, default=None,
                                help="Network subnet to scan (e.g. 192.168.1)")
     discover_parser.add_argument("-r", "--range", type=str, default=None,
                                help="Range of IP addresses to scan, format: start-end (e.g. 1-254)")
@@ -48,7 +48,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
                                help="Show verbose error output")
     discover_parser.add_argument("--no-children", action="store_true",
                                help="Skip fetching and displaying child devices from hubs")
-    
+
     return parser.parse_args(args)
 
 
@@ -62,7 +62,7 @@ async def monitor_mode(args: argparse.Namespace) -> None:
         else:
             console.print(f"[red]Invalid IP address format: {args.ip}[/red]")
             sys.exit(1)
-    
+
     # Run the monitor with the specified refresh interval
     await monitor_main(refresh_interval=args.interval, config=config)
 
@@ -71,11 +71,11 @@ async def discover_mode(args: argparse.Namespace) -> None:
     """Run the discover mode (original tapo-discover functionality)."""
     # Get configuration first
     config = TapoConfig.from_env()
-    
+
     # Only parse the IP range if explicitly provided
     subnet = args.subnet
     ip_range = None
-    
+
     if args.range:
         try:
             start, end = map(int, args.range.split('-'))
@@ -86,13 +86,13 @@ async def discover_mode(args: argparse.Namespace) -> None:
     elif not subnet:  # Only use config if no explicit subnet provided
         # Use configuration if no explicit range provided
         subnet, ip_range = config.get_discovery_params()
-    
+
     # Show debug info for what we're actually using
     if subnet:
         console.print(f"[yellow]Debug: Using subnet: {subnet}[/yellow]")
     if ip_range:
         console.print(f"[yellow]Debug: Using IP range: {ip_range[0]}-{ip_range[1]}[/yellow]")
-    
+
     # Run discovery with the specified parameters
     await discover_main(
         subnet=subnet,
@@ -116,12 +116,12 @@ async def main_async(args: argparse.Namespace) -> None:
     """Asynchronous entry point for the CLI."""
     # Initialize console
     setup_console()
-    
+
     # Show version if requested
     if args.version:
         console.print(f"Tapo Chatter v{get_version()}")
         return
-    
+
     # Handle the mode selection
     if args.mode == "monitor":
         await monitor_mode(args)
@@ -147,4 +147,4 @@ def main_cli() -> None:
 
 
 if __name__ == "__main__":
-    main_cli() 
+    main_cli()

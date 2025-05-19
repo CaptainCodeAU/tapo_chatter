@@ -1,6 +1,7 @@
-import pytest
 import os
 from unittest import mock
+
+import pytest
 
 from tapo_chatter.config import TapoConfig
 
@@ -186,4 +187,4 @@ def test_console_instance():
     import tapo_chatter.config
     assert hasattr(tapo_chatter.config, "console")
     from rich.console import Console
-    assert isinstance(tapo_chatter.config.console, Console) 
+    assert isinstance(tapo_chatter.config.console, Console)

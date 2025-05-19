@@ -1,7 +1,7 @@
 """Utility functions shared between different Tapo Chatter modules."""
 import socket
-import asyncio
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
+
 from rich.console import Console
 from tapo import ApiClient
 
@@ -14,11 +14,11 @@ async def check_host_connectivity(host: str, port: int = 80, timeout: float = 2)
         # Create a socket object
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
-        
+
         # Attempt to connect to the host
         result = sock.connect_ex((host, port))
         sock.close()
-        
+
         return result == 0
     except socket.error:
         return False
@@ -42,19 +42,19 @@ def process_device_data(device_data: Any) -> Dict[str, Any]:
     # Extract useful properties from device_info object
     useful_info = {}
     useful_properties = [
-        'avatar', 'device_on', 'model', 'nickname', 
+        'avatar', 'device_on', 'model', 'nickname',
         'signal_level', 'ssid', 'device_id', 'device_type',
         'hw_ver', 'mac', 'region', 'type', 'status'
     ]
-    
+
     for property in dir(device_data):
         if property in useful_properties:
             useful_info[property] = getattr(device_data, property)
-    
+
     return useful_info
 
 
 async def cleanup_resources() -> None:
     """Clean up any resources before exiting."""
     # Currently just a placeholder for future cleanup needs
-    pass 
+    pass

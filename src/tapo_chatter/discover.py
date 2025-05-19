@@ -1,17 +1,20 @@
 """Command-line tool for discovering Tapo devices on the network."""
-import asyncio
 import argparse
+import asyncio
 import json
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from rich.console import Console
 from rich.table import Table
 from tapo import ApiClient
 
 from .config import TapoConfig
 from .device_discovery import discover_devices
-from .main import get_child_devices, print_device_table as print_child_device_table, print_additional_device_info_table
-from .utils import check_host_connectivity, create_tapo_protocol, console
+from .main import (
+    get_child_devices,
+    print_additional_device_info_table,
+    print_device_table as print_child_device_table,
+)
+from .utils import console, create_tapo_protocol
 
 # console is imported from utils, so remove this duplicate
 # console = Console()
@@ -24,7 +27,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
         return
 
     table = Table(title="Discovered Tapo Devices")
-    
+
     # Add columns
     table.add_column("IP Address", style="cyan")
     table.add_column("Name", style="green")
@@ -33,11 +36,11 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
     table.add_column("Connection/Power", style="yellow")
     table.add_column("Signal", style="red")
     table.add_column("MAC", style="dim")
-    
+
     # Add rows
     for device in devices:
         device_info = device.get('device_info', {})
-        
+
         # Format signal level
         signal_level = device_info.get('signal_level')
         if isinstance(signal_level, (int, float)):
@@ -49,7 +52,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
                 signal_display = f"[red]{signal_level}[/red]"
         else:
             signal_display = "N/A"
-        
+
         # Status display - prefer 'status' property over 'device_on'
         # For hubs and sensors, status indicates connectivity
         # For plugs and bulbs, device_on indicates power state
@@ -73,7 +76,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
                 status = "Online"  # Assume online since we can communicate with it
             else:
                 status = "On" if device_info.get('device_on', False) else "Off"
-        
+
         table.add_row(
             device.get('ip_address', 'Unknown'),
             device_info.get('nickname', 'Unknown'),
@@ -83,7 +86,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
             signal_display,
             device_info.get('mac', 'N/A'),
         )
-    
+
     console.print(table)
 
 
@@ -100,37 +103,37 @@ async def print_hub_child_devices(hub_devices: List[Dict[str, Any]], client: Api
         ip_address = hub.get('ip_address')
         name = hub.get('device_info', {}).get('nickname', 'Unknown Hub')
         model = hub.get('device_info', {}).get('model', 'Unknown')
-        
+
         console.print(f"\n[bold blue]===== Child Devices Connected to {name} ({model}) at {ip_address} =====\n[/bold blue]")
-        
+
         # Get child devices from the hub
         try:
             if ip_address is None:
                 console.print("[yellow]Cannot fetch child devices: No IP address available[/yellow]")
                 continue
-                
+
             console.print(f"[yellow]Fetching child devices from hub at {ip_address}...[/yellow]")
             child_devices = await get_child_devices(client, ip_address)
-            
+
             if not child_devices:
                 console.print("[yellow]No child devices found connected to this hub.[/yellow]")
                 continue
-                
+
             console.print(f"[green]Found {len(child_devices)} child devices connected to hub {name}[/green]")
-            
+
             # Print detailed information tables
             if show_details:
                 print_additional_device_info_table(child_devices)
-            
+
             # Print the main child device table
             print_child_device_table(child_devices)
-            
+
         except Exception as e:
-            console.print(f"[red]Error fetching child devices from hub at {ip_address}: {str(e)}[/red]")
+            console.print(f"[red]Error fetching child devices from hub at {ip_address}: {e!s}[/red]")
 
 
-async def discover_main(subnet: Optional[str] = None, 
-                       ip_range: Optional[Tuple[int, int]] = (1, 254), 
+async def discover_main(subnet: Optional[str] = None,
+                       ip_range: Optional[Tuple[int, int]] = (1, 254),
                        limit: int = 20,
                        timeout: float = 0.5,
                        stop_after: Optional[int] = None,
@@ -160,14 +163,14 @@ async def discover_main(subnet: Optional[str] = None,
             console.print("[yellow]Loading configuration...[/yellow]")
             config = TapoConfig.from_env()
             console.print("[green]Configuration loaded successfully[/green]")
-        
+
         # Initialize API client
         client = await create_tapo_protocol(config.username, config.password)
-        
+
         # Use configured IP range if available
         if not subnet and not ip_range:
             subnet, ip_range = config.get_discovery_params()
-        
+
         # Start discovery
         devices, error_stats = await discover_devices(
             client=client,
@@ -177,17 +180,17 @@ async def discover_main(subnet: Optional[str] = None,
             timeout_seconds=timeout,
             stop_after=stop_after
         )
-        
+
         # Show verbose error statistics if requested
         if verbose and sum(error_stats.values()) > 0:
             console.print("\n[yellow]Connection Statistics:[/yellow]")
-            
+
             # Create a table for error stats
             stats_table = Table(title="Network Scan Results")
             stats_table.add_column("Error Type", style="yellow")
             stats_table.add_column("Count", style="cyan")
             stats_table.add_column("Description", style="green")
-            
+
             # Add error type descriptions
             descriptions = {
                 'timeout': "Normal timeouts from non-responsive IPs",
@@ -198,16 +201,16 @@ async def discover_main(subnet: Optional[str] = None,
                 'cancelled': "Scan cancelled by early stop option",
                 'other': "Other connection errors"
             }
-            
+
             # Add rows for each error type that has occurrences
             for error_type, count in error_stats.items():
                 if count > 0:
                     description = descriptions.get(error_type, "Unknown error type")
                     stats_table.add_row(error_type, str(count), description)
-            
+
             console.print(stats_table)
             console.print()  # Add a blank line for readability
-        
+
         # Output results
         if json_output:
             # Convert devices to JSON
@@ -220,27 +223,27 @@ async def discover_main(subnet: Optional[str] = None,
             # Print formatted table
             if devices:
                 print_device_table(devices)
-                
+
                 # Filter hub devices
                 hub_devices = [
-                    device for device in devices 
+                    device for device in devices
                     if 'HUB' in device.get('device_info', {}).get('type', '').upper()
                 ]
-                
+
                 # Print child devices for each hub if requested
                 if show_children and hub_devices:
                     await print_hub_child_devices(hub_devices, client)
             else:
                 console.print("[yellow]No devices found[/yellow]")
-                
+
     except Exception as e:
-        console.print(f"[red]Error during device discovery: {str(e)}[/red]")
+        console.print(f"[red]Error during device discovery: {e!s}[/red]")
 
 
 def discover_cli():
     """Command-line entry point for device discovery."""
     parser = argparse.ArgumentParser(description="Discover Tapo devices on your network")
-    parser.add_argument("-s", "--subnet", type=str, default=None, 
+    parser.add_argument("-s", "--subnet", type=str, default=None,
                       help="Network subnet to scan (e.g. 192.168.1)")
     parser.add_argument("-r", "--range", type=str, default=None,
                       help="Range of IP addresses to scan, format: start-end (e.g. 1-254)")
@@ -256,9 +259,9 @@ def discover_cli():
                       help="Show verbose error output")
     parser.add_argument("--no-children", action="store_true",
                       help="Skip fetching and displaying child devices from hubs")
-    
+
     args = parser.parse_args()
-    
+
     # Parse the IP range if provided via command line
     ip_range = None
     if args.range:
@@ -268,7 +271,7 @@ def discover_cli():
         except ValueError:
             console.print(f"[bold red]Invalid IP range format: {args.range}. Should be start-end (e.g. 1-254)[/bold red]")
             return
-    
+
     try:
         asyncio.run(discover_main(
             subnet=args.subnet,
@@ -285,4 +288,4 @@ def discover_cli():
 
 
 if __name__ == "__main__":
-    discover_cli() 
+    discover_cli()

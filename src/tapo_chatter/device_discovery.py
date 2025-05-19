@@ -4,16 +4,14 @@ This module provides functionality to discover Tapo devices on the local network
 by concurrently probing IP addresses in a given range.
 """
 import asyncio
-import ipaddress
 import socket
-import netifaces
-from typing import Dict, List, Tuple, Optional, Any, Union
+from typing import Any, Dict, List, Optional, Tuple
 
-from rich.console import Console
+import netifaces
 from tapo import ApiClient
 
-from .utils import console, process_device_data, check_host_connectivity
 from .config import TapoConfig
+from .utils import check_host_connectivity, console, process_device_data
 
 # console is imported from utils, so remove this duplicate
 # console = Console()
@@ -31,14 +29,14 @@ def get_local_ip_subnet() -> Optional[str]:
         default_gateway = netifaces.gateways()['default']
         if not default_gateway or not default_gateway.get(netifaces.AF_INET):
             return None
-            
+
         default_interface = default_gateway[netifaces.AF_INET][1]
-        
+
         # Get IP address for the interface
         interface_addresses = netifaces.ifaddresses(default_interface)
         if not interface_addresses or not interface_addresses.get(netifaces.AF_INET):
             return None
-            
+
         ip_address = interface_addresses[netifaces.AF_INET][0]['addr']
         # Return first three octets
         return '.'.join(ip_address.split('.')[:3])
@@ -78,13 +76,13 @@ async def device_probe(client: ApiClient, ip_address: str, timeout_seconds: floa
     import sys
     original_stderr = sys.stderr
     sys.stderr = io.StringIO()  # Capture stderr output
-    
+
     try:
         device = await client.generic_device(ip_address)
         device_info = await device.get_device_info()
         # Restore stderr before returning
         sys.stderr = original_stderr
-        
+
         if device_info:
             device_instance = {
                 'ip_address': ip_address,
@@ -98,7 +96,7 @@ async def device_probe(client: ApiClient, ip_address: str, timeout_seconds: floa
         return False, None
 
 
-async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_address: str, 
+async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_address: str,
                                timeout_seconds: float) -> Tuple[bool, Optional[Dict[str, Any]]]:
     """
     Probe a single IP address with semaphore for concurrency control.
@@ -116,8 +114,8 @@ async def device_probe_semaphore(sem: asyncio.Semaphore, client: ApiClient, ip_a
         return await asyncio.wait_for(device_probe(client, ip_address), timeout=timeout_seconds)
 
 
-async def discover_devices(client: ApiClient, subnet: Optional[str] = None, 
-                         ip_range: Optional[Tuple[int, int]] = (1, 254), 
+async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
+                         ip_range: Optional[Tuple[int, int]] = (1, 254),
                          limit: int = 20,
                          timeout_seconds: float = 0.5,
                          stop_after: Optional[int] = None
@@ -149,32 +147,32 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
             if subnet is None:
                 console.print("[yellow]Warning: Could not determine local subnet. Falling back to 192.168.1[/yellow]")
                 subnet = "192.168.1"
-    
+
     # Use default IP range if none provided
     if ip_range is None:
         ip_range = (1, 254)
-    
+
     console.print(f"[yellow]Discovering Tapo devices on subnet {subnet}.* (range {ip_range[0]}-{ip_range[1]})[/yellow]")
     console.print(f"[yellow]Using concurrency limit of {limit} with {timeout_seconds}s timeout[/yellow]")
-    
+
     device_data = []
     sem = asyncio.Semaphore(limit)  # Limit concurrent tasks
-    
+
     # Validate and adjust range
     start_ip = max(1, min(254, ip_range[0]))
     end_ip = max(1, min(254, ip_range[1]))
     if start_ip > end_ip:
         start_ip, end_ip = end_ip, start_ip
-        
+
     # Create tasks for each IP in the range
     tasks = []
     for ip_octet in range(start_ip, end_ip + 1):
         ip_address = f"{subnet}.{ip_octet}"
         task = asyncio.create_task(device_probe_semaphore(sem, client, ip_address, timeout_seconds))
         tasks.append(task)
-    
+
     console.print(f"[yellow]Created {len(tasks)} probe tasks, waiting for completion...[/yellow]")
-    
+
     # Collect results as they complete
     completed = 0
     found = 0
@@ -188,14 +186,14 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
         'cancelled': 0,
         'other': 0
     }
-    
+
     with console.status(f"[bold green]Scanning network... (0/{len(tasks)} completed, 0 devices found)") as status:
         for task in asyncio.as_completed(tasks):
             try:
                 is_device, device_instance = await task
                 completed += 1
                 status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors)")
-                
+
                 if is_device and device_instance:
                     found += 1
                     device_data.append(device_instance)
@@ -203,7 +201,7 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                     nickname = device_instance['device_info'].get('nickname', 'Unknown')
                     model = device_instance['device_info'].get('model', 'Unknown')
                     status.update(f"[bold green]Scanning network... ({completed}/{len(tasks)} completed, {found} devices found, {errors} errors) - Found {model} '{nickname}' at {ip}")
-                    
+
                     # Check if we've reached the desired number of devices
                     if stop_after is not None and found >= stop_after:
                         console.print(f"[yellow]Reached target of {stop_after} devices, stopping scan early[/yellow]")
@@ -213,7 +211,7 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                                 t.cancel()
                                 error_types['cancelled'] += 1
                         break
-                        
+
             except asyncio.TimeoutError:
                 errors += 1
                 error_types['timeout'] += 1
@@ -234,7 +232,7 @@ async def discover_devices(client: ApiClient, subnet: Optional[str] = None,
                     error_types['hash_mismatch'] += 1
                 else:
                     error_types['other'] += 1
-    
+
     return device_data, error_types
 
 
@@ -244,11 +242,11 @@ async def check_host_connectivity(host: str, port: int = 80, timeout: float = 2)
         # Create a socket object
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
-        
+
         # Attempt to connect to the host
         result = sock.connect_ex((host, port))
         sock.close()
-        
+
         return result == 0
     except socket.error:
-        return False 
+        return False

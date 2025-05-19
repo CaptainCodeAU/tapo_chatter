@@ -1,10 +1,11 @@
 """Test for the main entry point when run as a script."""
 
 import os
-import sys
 import subprocess
+import sys
+
 import pytest
-from unittest import mock
+
 
 @pytest.mark.asyncio
 async def test_main_entry_point():
@@ -14,7 +15,7 @@ async def test_main_entry_point():
     """
     # Create a temporary test script
     temp_script = os.path.join(os.path.dirname(__file__), 'temp_test_script.py')
-    
+
     try:
         # Create a script that will test the main module's entry point
         with open(temp_script, 'w') as f:
@@ -44,7 +45,7 @@ with mock.patch('asyncio.run') as mock_run:
     assert mock_run.call_count == 1, f"asyncio.run was called {mock_run.call_count} times, expected 1"
     print("Successfully verified __main__ block execution")
 ''')
-        
+
         # Run the temporary script and check its output
         result = subprocess.run(
             [sys.executable, temp_script],
@@ -52,11 +53,11 @@ with mock.patch('asyncio.run') as mock_run:
             text=True,
             check=True
         )
-        
+
         # Verify the script ran successfully and produced the expected output
         assert "Successfully verified __main__ block execution" in result.stdout
-        
+
     finally:
         # Clean up the temporary file
         if os.path.exists(temp_script):
-            os.remove(temp_script) 
+            os.remove(temp_script)

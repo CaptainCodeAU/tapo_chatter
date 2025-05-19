@@ -3,8 +3,9 @@
 
 import os
 import sys
-import coverage
 import unittest.mock as mock
+
+import coverage
 
 # Set up coverage measurement
 cov = coverage.Coverage()
@@ -15,10 +16,9 @@ with mock.patch('asyncio.run'):
     # Act as if this module is being run directly
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     # Don't actually run the main function, but do execute the module
-    import src.tapo_chatter.main
 
 # Stop coverage measurement and report
 cov.stop()
 cov.save()
 
-print("Coverage of __main__ block executed successfully.") 
+print("Coverage of __main__ block executed successfully.")

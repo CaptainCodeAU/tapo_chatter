@@ -1,8 +1,7 @@
 """Main module for Tapo Chatter."""
 import asyncio
-import socket
-import datetime # Added for timestamp conversion
-import os # Added for clearing screen
+import datetime  # Added for timestamp conversion
+import os  # Added for clearing screen
 from typing import Any, Dict, List, Optional
 
 from rich.console import Console
@@ -30,16 +29,16 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
             return []
 
         console.print(f"[green]Successfully connected to {host}[/green]")
-        
+
         # Get the hub device first
         console.print("[yellow]Attempting to initialize H100 hub...[/yellow]")
         hub = await client.h100(host)
         console.print("[green]Successfully initialized H100 hub[/green]")
-        
+
         # Then get the child devices
         console.print("[yellow]Fetching child devices...[/yellow]")
         result = await hub.get_child_device_list()
-        
+
         # Debug the raw result - COMMENTED OUT
         # console.print(Panel(
         #     f"[cyan]Raw Result Type:[/cyan] {type(result)}\\n"
@@ -48,7 +47,7 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
         #     title="Raw API Response",
         #     border_style="blue"
         # ))
-        
+
         processed_devices: List[Dict[str, Any]] = []
         if isinstance(result, list):
             for i, device_obj in enumerate(result):
@@ -63,14 +62,14 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
                     device_dict["device_type"] = getattr(device_obj, 'type', "Unknown")
                 else:
                     device_dict["device_type"] = "Unknown"
-                
+
                 # The print_device_table function expects 'status' to be 1 for Online.
                 # We need to see what attribute on device_obj represents this.
                 # Common names: 'status', 'online'. Let's assume 'status' for now.
                 # If 'status' is boolean True for online, it also needs conversion.
                 # For now, assuming it's already 0 or 1 as print_device_table expects.
                 raw_status = getattr(device_obj, 'status', 0)
-                
+
                 current_status_val = 0 # Default to Offline
                 if raw_status is not None:
                     # Check common ways an 'online' status might be represented
@@ -94,7 +93,7 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
                 params: Dict[str, Any] = {}
                 device_data_from_to_dict = {}
 
-                if hasattr(device_obj, 'to_dict') and callable(getattr(device_obj, 'to_dict')):
+                if hasattr(device_obj, 'to_dict') and callable(device_obj.to_dict):
                     try:
                         device_data_from_to_dict = device_obj.to_dict() # type: ignore[attr-defined]
                     except Exception:  # pylint: disable=broad-except
@@ -117,10 +116,10 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
                     is_open = device_data_from_to_dict.get('open')
                     if isinstance(is_open, bool):
                         params['contact_status'] = "Open" if is_open else "Closed"
-                        
+
                     # RSSI (Signal Strength)
                     rssi_value = device_data_from_to_dict.get('rssi')
-                    # if rssi_value is not None: 
+                    # if rssi_value is not None:
                     #     device_dict['rssi'] = str(rssi_value) # Store directly in device_dict
                     # else:
                     #     device_dict['rssi'] = "N/A"
@@ -141,23 +140,23 @@ async def get_child_devices(client: ApiClient, host: str) -> List[Dict[str, Any]
                     params['region'] = str(device_data_from_to_dict.get('region', "N/A"))
                     params['report_interval'] = str(device_data_from_to_dict.get('report_interval', "N/A"))
                     params['signal_level'] = str(device_data_from_to_dict.get('signal_level', "N/A"))
-                
+
                 device_dict["params"] = params
                 processed_devices.append(device_dict)
-        
+
         # Show the extracted data structure - COMMENTED OUT
         # console.print(Panel(
         #     f"[cyan]Extracted Data Structure:[/cyan]\\n{str(processed_devices)}",
         #     title="Processed Data",
         #     border_style="blue"
         # ))
-        
+
         console.print(f"[green]Successfully retrieved {len(processed_devices)} child devices[/green]")
         return processed_devices
-        
+
     except Exception as e:
         console.print(Panel(
-            f"[red]Error getting child devices: {str(e)}[/red]\n\n"
+            f"[red]Error getting child devices: {e!s}[/red]\n\n"
             "[yellow]This could be due to:[/yellow]\n"
             "• Invalid credentials\n"
             "• Device is not a H100 hub\n"
@@ -188,7 +187,7 @@ def print_additional_device_info_table(devices: List[Dict[str, Any]]) -> None:
 
     for device in devices:
         device_params = device.get('params', {})
-        
+
         jamming_rssi_val = device_params.get('jamming_rssi', "N/A")
         jamming_rssi_display = str(jamming_rssi_val)
         if isinstance(jamming_rssi_val, (int, float)):
@@ -223,28 +222,28 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
         return
 
     table = Table(title="Tapo H100 Child Devices")
-    
+
     # Add columns
     table.add_column("Device Name", style="cyan")
     table.add_column("Device ID", style="magenta")
     table.add_column("Type", style="green")
     table.add_column("Status", style="yellow")
-    table.add_column("RSSI", style="magenta") 
-    table.add_column("Details", style="blue") 
-    
+    table.add_column("RSSI", style="magenta")
+    table.add_column("Details", style="blue")
+
     # Add rows
     for device in devices:
         # Extract additional details if available
         details = []
         device_params = device.get('params', {})
-        
+
         if isinstance(device_params, dict):
             # Standard sensor data (if present) - Temperature/Humidity remain in details
             if "temperature" in device_params:
                 details.append(f"Temp: {device_params['temperature']}°C")
             if "humidity" in device_params:
                 details.append(f"Humidity: {device_params['humidity']}%")
-            
+
             # Parsed status based on to_dict() data - Battery and RSSI removed from here
             if "motion_status" in device_params:
                 motion_text = f"Motion: {device_params['motion_status']}"
@@ -258,7 +257,7 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
                     details.append(f"[bold red]{contact_text}[/bold red]")
                 else:
                     details.append(contact_text)
-        
+
         rssi_val = device.get('rssi', "N/A")
         rssi_display = str(rssi_val)
         if isinstance(rssi_val, (int, float)):
@@ -277,9 +276,9 @@ def print_device_table(devices: List[Dict[str, Any]]) -> None:
             device.get("device_type", "Unknown"),
             "Online" if device.get("status", 0) == 1 else "Offline",
             rssi_display,    # Colored RSSI
-            ", ".join(details) if details else "No specific sensor info" 
+            ", ".join(details) if details else "No specific sensor info"
         )
-    
+
     console.print(table)
 
 
@@ -291,12 +290,12 @@ async def main(refresh_interval: int = 10, config: Optional[TapoConfig] = None) 
             console.print("[yellow]Loading configuration...[/yellow]")
             config = TapoConfig.from_env()
             console.print("[green]Configuration loaded successfully[/green]")
-        
+
         # Initialize the API client
         console.print("[yellow]Initializing Tapo API client...[/yellow]")
         client = ApiClient(config.username, config.password)
         console.print("[green]API client initialized[/green]")
-        
+
         refresh_interval_seconds = refresh_interval
         console.print(f"[blue]Starting real-time monitoring. Refreshing every {refresh_interval_seconds} seconds. Press Ctrl+C to exit.[/blue]")
         await asyncio.sleep(2) # Brief pause before first clear
@@ -304,25 +303,25 @@ async def main(refresh_interval: int = 10, config: Optional[TapoConfig] = None) 
         while True:
             # Clear the console
             os.system('cls' if os.name == 'nt' else 'clear')
-            
+
             console.print(f"[bold blue]Last updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/bold blue]")
             # Get child devices
             devices = await get_child_devices(client, config.ip_address)
-            
+
             # Print the additional device information table
             print_additional_device_info_table(devices)
-            
+
             # Print the main devices table
             print_device_table(devices)
-            
+
             await asyncio.sleep(refresh_interval_seconds)
-            
+
     except KeyboardInterrupt:
         # This is now handled by main_cli, but kept here as a safeguard if main() is called directly.
         console.print("\n[bold yellow]Monitoring stopped by user.[/bold yellow]")
     except Exception as e:
         console.print(Panel(
-            f"[red]Error: {str(e)}[/red]",
+            f"[red]Error: {e!s}[/red]",
             title="Fatal Error",
             border_style="red"
         ))

@@ -1,15 +1,13 @@
 """Test the direct execution of the main module."""
 
-import pytest
 import os
-import sys
-from unittest import mock
-import importlib
 import subprocess
+import sys
+
 
 def test_main_direct_execution():
     """Test the direct execution of the main module."""
-    
+
     # Create a simple script that will execute the main module with __name__ = "__main__"
     script_path = os.path.join(os.path.dirname(__file__), "exec_main.py")
     with open(script_path, "w") as f:
@@ -65,15 +63,15 @@ finally:
     cov.stop()
     cov.save()
 """)
-    
+
     try:
         # Run the script
-        result = subprocess.run([sys.executable, script_path], 
+        result = subprocess.run([sys.executable, script_path],
                                capture_output=True, text=True)
-        
+
         # Check the output
         assert "PASS: asyncio.run was called" in result.stdout, f"Script failed: {result.stdout} {result.stderr}"
     finally:
         # Clean up
         if os.path.exists(script_path):
-            os.remove(script_path) 
+            os.remove(script_path)
